@@ -299,14 +299,14 @@
 
         /* API-derived field highlight */
         .api-derived {
-            background-color: #dbeafe !important;
-            border-color: #3b82f6 !important;
-            color: #1e40af;
+            background-color: #dcfce7 !important;
+            border-color: #22c55e !important;
+            color: #15803d;
         }
 
         .api-derived-label {
             font-weight: 600;
-            color: #0288d1;
+            color: #15803d;
         }
 
         /* Calculated from WB data */
@@ -327,8 +327,8 @@
         }
 
         .badge-api {
-            background: #dbeafe;
-            color: #0288d1;
+            background: #dcfce7;
+            color: #15803d;
         }
 
         .badge-calc {
@@ -752,7 +752,7 @@
                             </button>
                             <div class="mb-3">
                                 <label class="form-label"><i class="fas fa-users"></i> Hotspot Population (thousands)
-                                    <span class="badge bg-info" id="apiPopBadge">API</span></label>
+                                    <span class="badge bg-success" id="apiPopBadge">API</span></label>
                                 <input type="number" class="form-control api-derived" id="populationInput" value="500"
                                     min="1" max="100000">
                                 <small class="text-muted">Population at risk in cholera hotspots (auto-filled from World
@@ -1251,6 +1251,47 @@
                 </div>
             </div>
         </div>
+
+        <!-- Data Sources Footer -->
+        <div class="row mt-5 mb-4">
+            <div class="col-12 text-center text-muted small">
+                <hr>
+                <p class="mb-2"><i class="fas fa-database"></i> <strong>World Bank Data Sources</strong></p>
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <a href="https://data.worldbank.org/indicator/SP.POP.TOTL" target="_blank"
+                        class="text-muted text-decoration-none hover-dark"><i
+                            class="fas fa-external-link-alt fa-sm"></i> Population (SP.POP.TOTL)</a>
+                    <a href="https://data.worldbank.org/indicator/SP.POP.GROW" target="_blank"
+                        class="text-muted text-decoration-none hover-dark"><i
+                            class="fas fa-external-link-alt fa-sm"></i> Pop. Growth (SP.POP.GROW)</a>
+                    <a href="https://data.worldbank.org/indicator/NY.GDP.PCAP.CD" target="_blank"
+                        class="text-muted text-decoration-none hover-dark"><i
+                            class="fas fa-external-link-alt fa-sm"></i> GDP per capita (NY.GDP.PCAP.CD)</a>
+                    <a href="https://data.worldbank.org/indicator/SH.STA.SMSS.ZS" target="_blank"
+                        class="text-muted text-decoration-none hover-dark"><i
+                            class="fas fa-external-link-alt fa-sm"></i> Safe Sanitation (SH.STA.SMSS.ZS)</a>
+                    <a href="https://data.worldbank.org/indicator/SH.STA.ODFC.ZS" target="_blank"
+                        class="text-muted text-decoration-none hover-dark"><i
+                            class="fas fa-external-link-alt fa-sm"></i> Open Defecation (SH.STA.ODFC.ZS)</a>
+                    <a href="https://data.worldbank.org/indicator/SH.XPD.CHEX.GD.ZS" target="_blank"
+                        class="text-muted text-decoration-none hover-dark"><i
+                            class="fas fa-external-link-alt fa-sm"></i> Health Spend (SH.XPD.CHEX.GD.ZS)</a>
+                    <a href="https://data.worldbank.org/indicator/SH.STA.STNT.ZS" target="_blank"
+                        class="text-muted text-decoration-none hover-dark"><i
+                            class="fas fa-external-link-alt fa-sm"></i> Child Stunting (SH.STA.STNT.ZS)</a>
+                    <a href="https://data.worldbank.org/indicator/SP.DYN.IMRT.IN" target="_blank"
+                        class="text-muted text-decoration-none hover-dark"><i
+                            class="fas fa-external-link-alt fa-sm"></i> Infant Mortality (SP.DYN.IMRT.IN)</a>
+                </div>
+                <style>
+                    .hover-dark:hover {
+                        color: #333 !important;
+                        text-decoration: underline !important;
+                    }
+                </style>
+            </div>
+        </div>
+
     </div>
 
     <!-- Scripts -->
