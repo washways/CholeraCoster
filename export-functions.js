@@ -164,13 +164,50 @@ function buildEconBreakdownHTML(s) {
 }
 
 // Helper: capture all chart canvases as base64 images
+// Temporarily reveals hidden Bootstrap tabs so Chart.js canvases render at full size
 function captureCharts() {
     const ids = ['comparisonChart', 'costChart', 'outcomeChart', 'benefitChart'];
     const imgs = {};
+
+    // Save original display states and force all tab-panes visible
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    const originalStyles = [];
+    tabPanes.forEach(function (pane) {
+        originalStyles.push(pane.style.display);
+        pane.style.display = 'block';
+        pane.classList.add('show', 'active');
+    });
+
+    // Force Chart.js to resize into newly visible containers
+    if (typeof Chart !== 'undefined') {
+        Chart.helpers.each(Chart.instances, function (instance) {
+            instance.resize();
+        });
+    }
+
+    // Capture each canvas
     for (const id of ids) {
         const canvas = document.getElementById(id);
-        imgs[id] = (canvas && canvas.width > 0) ? canvas.toDataURL('image/png') : '';
+        if (canvas && canvas.width > 0) {
+            try {
+                imgs[id] = canvas.toDataURL('image/png');
+            } catch (e) {
+                imgs[id] = '';
+            }
+        } else {
+            imgs[id] = '';
+        }
     }
+
+    // Restore original tab-pane display states
+    tabPanes.forEach(function (pane, i) {
+        pane.style.display = originalStyles[i];
+        // Only keep show/active on the originally active pane
+        if (originalStyles[i] === 'none' || originalStyles[i] === '') {
+            pane.classList.remove('show', 'active');
+        }
+    });
+
     return imgs;
 }
 
