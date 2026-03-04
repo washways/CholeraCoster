@@ -590,6 +590,7 @@ function setupEventListeners() {
     // Export/Print buttons
     document.getElementById('exportCSVBtn').addEventListener('click', exportToCSV);
     document.getElementById('exportJSONBtn').addEventListener('click', exportToJSON);
+    document.getElementById('exportWordBtn').addEventListener('click', exportToWord);
     document.getElementById('printBtn').addEventListener('click', printResults);
 
     // API test button
@@ -639,6 +640,7 @@ function getInputValues() {
         baseYear: parseInt(document.getElementById('baseYearInput').value),
         duration: parseInt(document.getElementById('durationInput').value),
         washRampUp: parseFloat(document.getElementById('washRampUpInput').value) / 100,
+        washOMRate: parseFloat(document.getElementById('washOMRateInput').value) / 100,
         ocvRampUp: parseFloat(document.getElementById('ocvRampUpInput').value) / 100,
 
         // WASH targets
@@ -726,17 +728,17 @@ async function calculateAnalysis() {
 
     // Calculate for each scenario (no API re-fetch — data was loaded at init)
     allScenarios = {
-        bau: calculateScenario(inputs, 'Business as Usual', 0, 0),
-        wash: calculateScenario(inputs, 'WASH Only', 0.75, 0),
-        ocv: calculateScenario(inputs, 'OCV Only', 0, 0.70),
-        combined: calculateScenario(inputs, 'WASH + OCV', 0.75, 0.70),
+        bau: calculateScenario(inputs, 'Business as Usual', false, false),
+        wash: calculateScenario(inputs, 'WASH Only', true, false),
+        ocv: calculateScenario(inputs, 'OCV Only', false, true),
+        combined: calculateScenario(inputs, 'WASH + OCV', true, true),
     };
 
     calculationResults = allScenarios[currentScenario];
     updateResultsDisplay();
 }
 
-function calculateScenario(inputs, name, washReduction, ocvCoverage) {
+function calculateScenario(inputs, name, hasWash, hasOCV) {
     const years = [];
     const yearlyData = {
         costs: { washCapital: [], washOM: [], ocvCampaigns: [], surveillance: [], caseManagement: [], other: [], total: [] },
@@ -761,23 +763,29 @@ function calculateScenario(inputs, name, washReduction, ocvCoverage) {
         // Calculate population for this year
         const pop = inputs.population * Math.pow(1 + inputs.growthRate, year) * 1000; // Convert back to actual
 
-        // WASH implementation ramp-up (linear over specified % of duration)
+        // WASH implementation ramp-up
+        const washReduction = hasWash ? 0.75 : 0;
         const rampUpEnd = Math.ceil(inputs.duration * inputs.washRampUp);
         const washProgress = Math.min(year / (rampUpEnd > 0 ? rampUpEnd : 1), 1) * washReduction;
+        const prevWashProgress = Math.min(Math.max(year - 1, 0) / (rampUpEnd > 0 ? rampUpEnd : 1), 1) * washReduction;
+        const marginalWashProgress = washProgress - prevWashProgress;
 
-        // OCV implementation ramp-up (linear over specified % of duration)
+        // OCV implementation ramp-up
+        const ocvCoverage = hasOCV ? inputs.ocvTarget : 0;
         const ocvRampEnd = Math.ceil(inputs.duration * inputs.ocvRampUp);
         const ocvProgress = ocvCoverage > 0 ? Math.min(year / (ocvRampEnd > 0 ? ocvRampEnd : 1), 1) * ocvCoverage : 0;
 
         // Calculate costs
-        // WASH capital costs during ramp-up only
-        const washCapitalCost = year < rampUpEnd ? (pop * washProgress * (inputs.waterTarget * inputs.waterCost + inputs.sanitationTarget * inputs.sanitationCost + inputs.hygieneTarget * inputs.hygieneCost) / 1000) : 0;
-        // O&M continues at full level after capital investment ends (based on peak infrastructure)
-        const peakWashProgress = washReduction; // fully ramped-up WASH progress
-        const washOMBase = pop * peakWashProgress * (inputs.waterTarget * inputs.waterCost + inputs.sanitationTarget * inputs.sanitationCost + inputs.hygieneTarget * inputs.hygieneCost) / 1000;
-        const washOMCost = year < rampUpEnd ? washCapitalCost * 0.1 : washOMBase * 0.1;
-        // OCV campaign costs (proportional to target coverage)
-        const ocvCampaignCost = ocvCoverage > 0 ? pop * inputs.ocvTarget * ocvProgress * inputs.ocvCost / 1000 : 0;
+        // Capital cost is purely the margin of new infrastructure built this year
+        const washCapitalCost = (pop * marginalWashProgress * (inputs.waterTarget * inputs.waterCost + inputs.sanitationTarget * inputs.sanitationCost + inputs.hygieneTarget * inputs.hygieneCost) / 1000);
+
+        // O&M is based on the cumulative infrastructure built so far
+        const washOMCostBase = (pop * washProgress * (inputs.waterTarget * inputs.waterCost + inputs.sanitationTarget * inputs.sanitationCost + inputs.hygieneTarget * inputs.hygieneCost) / 1000);
+        const washOMCost = washOMCostBase * inputs.washOMRate;
+
+        // OCV campaign costs 
+        const ocvCampaignCost = ocvCoverage > 0 ? pop * ocvProgress * inputs.ocvCost / 1000 : 0;
+
         const surveillanceCost = pop * 0.02; // $0.02 per person per year
 
 
@@ -786,7 +794,7 @@ function calculateScenario(inputs, name, washReduction, ocvCoverage) {
 
         // Calculate health outcomes
         // WASH reduces transmission
-        const caseReductionFromWash = washProgress * washReduction;
+        const caseReductionFromWash = washProgress;
         // OCV provides protection
         const caseReductionFromOCV = ocvProgress * 0.85; // 85% efficacy
 
@@ -1400,7 +1408,7 @@ function resetDefaults() {
 
 function formatNumber(num) {
     if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
+        return (num / 1000000).toFixed(2) + 'M';
     } else if (num >= 1000) {
         return (num / 1000).toFixed(1) + 'K';
     }

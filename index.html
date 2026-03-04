@@ -503,8 +503,10 @@
                 <li><strong>Select a country</strong> from the dropdown at the top (defaults to Malawi)</li>
                 <li><strong>Wait for data to load</strong> — you'll see a loading spinner while fetching World Bank API
                     data</li>
-                <li><strong>Blue-highlighted fields</strong> <span class="splash-badge">API</span> are automatically
-                    filled from World Bank data</li>
+                <li><strong>Green-highlighted fields</strong> <span class="splash-badge badge-calc"
+                        style="background:#dcfce7; color:#15803d; border:1px solid #22c55e;">Auto</span> are
+                    automatically
+                    calculated or filled from World Bank data</li>
                 <li><strong>Enter your parameters</strong> in the left panel (costs, targets, health assumptions)</li>
                 <li><strong>Click "Calculate Analysis"</strong> to run the model</li>
                 <li><strong>Compare scenarios</strong> using the compact scenario buttons (BAU, WASH, OCV, WASH+OCV)
@@ -620,13 +622,11 @@
                                 <p>This calculator uses a combination of user input and publicly available data to
                                     project the costs and benefits of cholera prevention strategies.</p>
                                 <ul>
-                                    <li>Population data (highlighted in <span class="api-derived-label">blue</span>) is
-                                        automatically loaded from the <a href="https://data.worldbank.org/"
-                                            target="_blank">World Bank API</a> when the page loads. Additional
-                                        indicators such as GDP per capita, sanitation coverage, health expenditure and
-                                        stunting are also fetched and shown in the panel.</li>
-                                    <li>The model computes a phased ramp-up of WASH interventions and OCV campaigns over
-                                        the chosen timeline.</li>
+                                    <li>Data marked as <span class="field-badge badge-calc">Auto / Calculated</span> is
+                                        automatically
+                                        loaded from the <a href="https://data.worldbank.org/" target="_blank">World Bank
+                                            API</a> or derived using standard formulas.</li>
+                                    <li>Adjust interventions and target timelines to build your roadmap.</li>
                                     <li>Health outcomes are derived from baseline cholera rates, coverage targets, and
                                         efficacy assumptions; cases and deaths averted flow through a rich set of
                                         economic formulas to calculate benefits including emergency response savings,
@@ -790,6 +790,15 @@
                             </div>
 
                             <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-tools"></i> WASH O&M Rate
+                                    (%)</label>
+                                <input type="number" class="form-control" id="washOMRateInput" value="10" min="0"
+                                    max="50" step="1">
+                                <small class="text-muted">Operations & Maintenance cost as an annual % of total WASH
+                                    capital</small>
+                            </div>
+
+                            <div class="mb-3">
                                 <label class="form-label"><i class="fas fa-chart-line"></i> OCV Campaign Ramp-Up
                                     (%)</label>
                                 <input type="number" class="form-control" id="ocvRampUpInput" value="50" min="10"
@@ -818,19 +827,7 @@
                                 <small class="text-muted">ISO 3-letter country code for World Bank API (start typing or
                                     pick)</small>
                             </div>
-
-                            <div class="mb-4">
-                                <label class="form-label">WB Data Year</label>
-                                <select class="form-select" id="wbYearInput">
-                                    <option value="2025" selected>2025</option>
-                                    <option value="2024">2024</option>
-                                    <option value="2023">2023</option>
-                                    <option value="2022">2022</option>
-                                    <option value="2021">2021</option>
-                                    <option value="2020">2020</option>
-                                </select>
-                                <small class="text-muted">Choose nearest available data year</small>
-                            </div>
+                            <input type="hidden" id="wbYearInput" value="2025">
 
                             <!-- WASH Parameters -->
                             <hr>
@@ -1069,6 +1066,9 @@
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-info" id="exportJSONBtn">
                                     <i class="fas fa-code"></i> JSON
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-info" id="exportWordBtn">
+                                    <i class="fas fa-file-word"></i> Word
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-info" id="printBtn">
                                     <i class="fas fa-print"></i> Print
