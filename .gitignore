@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# virtual env
+venv/
+.env
+
+# node modules (Cloudflare worker support)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
