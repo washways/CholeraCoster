@@ -1,6 +1,6 @@
-# Malawi Cholera Cost Calculator
+# Global Cholera Cost Calculator
 
-A comprehensive, interactive web-based tool for analyzing the costs and benefits of cholera prevention interventions in Malawi.
+A comprehensive, interactive web-based tool for analyzing the costs and benefits of cholera prevention interventions globally.
 
 ## Features
 
@@ -13,7 +13,7 @@ A comprehensive, interactive web-based tool for analyzing the costs and benefits
 ### 🌍 **Data Integration**
 - Automatic population data from World Bank APIs
 - Currency conversions and economic indicators
-- Based on WHO and CDC epidemiological data
+- Based on standard epidemiological models
 
 ### 📈 **Comprehensive Metrics**
 - Investment costs breakdown (WASH, vaccines, case management, other program costs)
@@ -108,7 +108,7 @@ Because all computations occur in JavaScript, you can inspect or modify them dir
 3. The application will:
    - Start a local web server
    - Automatically open in your default browser
-   - Load Malawi population data from World Bank API
+   - Load Global population data from World Bank API
 
 ### Alternative: Direct Browser Access
 - Simply open `index.html` in your web browser (may have limited API access)
@@ -118,7 +118,7 @@ Because all computations occur in JavaScript, you can inspect or modify them dir
 ### Step 1: Input Base Parameters
 
 #### World Bank Data Source (optional)
-- **Country Code**: ISO3 code (defaults to `MWI` for Malawi). A dropdown list of common Eastern African codes is provided, but you may type any valid ISO3 code.
+- **Country Code**: ISO3 code (defaults to `MWI` for Global). A dropdown list of common Eastern African codes is provided, but you may type any valid ISO3 code.
 - **WB Data Year**: Select the year of World Bank indicators (default `2025`). The API will return the closest available year if the exact value is not present.
 
 
@@ -139,7 +139,7 @@ Because all computations occur in JavaScript, you can inspect or modify them dir
 - **OCV Coverage Target**: % of population vaccinated in campaigns
 
 #### Unit Costs (in USD)
-- Costs based on Sub-Saharan Africa averages, adjustable for Malawi:
+- Costs based on Sub-Saharan Africa averages, adjustable for any country:
   - **Water Supply**: $45/capita (infrastructure development)
   - **Sanitation**: $35/capita (improved latrines/facilities)
   - **Hygiene Promotion**: $8/capita (behavior change campaigns)
@@ -214,12 +214,12 @@ Deaths Averted = Cases Averted × Case Fatality Rate
 #### Valuing Mortality
 The calculator offers a **dual mortality valuation method**, controlled via a UI toggle:
 
-1. **HCA (Human Capital Approach):** The net present value (NPV) of lost future economic contribution.
-   * *Formula:* `Σ (GDPpc / (1+r)^t)`, where `r=3%` discount rate over the remaining working years (assuming working age up to 65).
-   * *Profile:* More conservative, closely tied to pure economic output.
-2. **VSL (Value of Statistical Life):** Based on societal willingness-to-pay to reduce mortality risk.
-   * *Formula:* `GDPpc × Multiplier`, where the multiplier scales dynamically between 70–100 depending on the country's income classification (e.g., extremely low income uses 70x).
-   * *Profile:* Standard welfare-economics approach capturing intrinsic life value; generates higher benefits.
+1.  **HCA (Human Capital Approach):** The net present value (NPV) of lost future economic contribution.
+    *   *Formula:* `Σ (GDPpc / (1+r)^t)`, where `r=3%` discount rate over the remaining working years (assuming working age up to 65).
+    *   *Profile:* More conservative, closely tied to pure economic output.
+2.  **VSL (Value of Statistical Life):** Based on societal willingness-to-pay to reduce mortality risk.
+    *   *Formula:* `GDPpc × Multiplier`, where the multiplier scales dynamically between 70–100 depending on the country's income classification (e.g., extremely low income uses 70x).
+    *   *Profile:* Standard welfare-economics approach capturing intrinsic life value; generates higher benefits.
 
 You can seamlessly switch between these methods; the calculator dynamically restates impact figures based on local WB GDP data.
 
@@ -254,8 +254,8 @@ Cost per DALY = Total Costs / DALY Averted
 
 ### Data Sources
 - **Population**: World Bank (API) – the CSV export now records the value used.
-- **Unit Costs**: WHO, World Health Statistics
-- **Health Parameters**: CDC, WHO guidance on cholera
+- **Unit Costs**: World Health Statistics
+- **Health Parameters**: Guidance on cholera
 - **Economic Data**: International Labour Organization data
 
 ## Interpreting Results
@@ -263,7 +263,7 @@ Cost per DALY = Total Costs / DALY Averted
 ### Good Indicators for an Intervention
 - ✅ Benefit-Cost Ratio > 1.0 (benefits exceed costs)
 - ✅ Net Benefit is positive (net gain to society)
-- ✅ Cost per DALY < GDP per capita (WHO threshold)
+- ✅ Cost per DALY < GDP per capita (threshold)
 - ✅ High cases/deaths averted relative to investment
 
 ### Limitation Notices
@@ -276,8 +276,8 @@ Cost per DALY = Total Costs / DALY Averted
 ## Data Sources & Attribution
 
 - **Population Data**: World Bank API (Open Data)
-- **Epidemiological Models**: Adapted from WHO GTFCC guidelines
-- **Cost Data**: WASH sector benchmarks, WHO procurement data
+- **Epidemiological Models**: Adapted from GTFCC guidelines
+- **Cost Data**: WASH sector benchmarks, procurement data
 - **Economic Parameters**: ILO, national income statistics
 
 ## Technical Details
@@ -305,8 +305,8 @@ Cost per DALY = Total Costs / DALY Averted
 ### Issue: "Could not load external data"
 
 If your office firewall blocks localhost or external proxies, you can disable
-World Bank queries entirely.  Open `calculator.js` and set
-`const ENABLE_API = false;` near the top of the file.  The app will then skip
+World Bank queries entirely. Open `calculator.js` and set
+`const ENABLE_API = false;` near the top of the file. The app will then skip
 the proxy logic and simply show the parameter form with default/blank values.
 This is the simplest way to run in a locked‑down network; you can still type in
 your own numbers.
@@ -324,7 +324,7 @@ Steps summary:
 
 See `cloudflare_worker/README.md` for full details.
 
-- **Solution**: Calculator defaults to standard values. You can manually input Malawi-specific data.
+- **Solution**: Calculator defaults to standard values. You can manually input Global-specific data.
 - Check internet connection for API access
 
 ### Issue: Charts not displaying
@@ -338,7 +338,7 @@ See `cloudflare_worker/README.md` for full details.
 
 ### Issue: Numbers seem unrealistic
 - **Solution**: Verify input parameters match your context
-- Consult WHO/local health ministry for realistic rates
+- Consult local health ministry for realistic rates
 - Check calculation assumptions match your scenario
 
 ## Future Enhancements
@@ -346,32 +346,23 @@ See `cloudflare_worker/README.md` for full details.
 - Multi-country comparison module
 - Uncertainty analysis and sensitivity testing
 - Monte Carlo simulation for probabilistic outcomes
+- Monte Carlo simulation for probabilistic outcomes
 - GIS mapping of intervention zones
-- Integration with national health data systems
-- Adaptation pathways for climate resilience
-- Gender-disaggregated impact analysis
 
-## Support & Contact
+## License & Contact
 
-For questions about calculations or methodology:
-- Refer to: WHO Cholera Response Framework (2017)
-- WASH & Health: WHO/UNICEF Joint Monitoring Programme
-- Request methodology documentation
+This project is licensed under the **MIT License**.
 
-## License & Attribution
-
-This calculator implements the methodology from the Malawi Investment Plan for Cholera Prevention and Control.
-Based on Excel model: "Unprotected MALAWI INVESTMENT TOOL 2026.xlsx"
+For support, questions, or methodology inquiries, please contact: **washways1@gmail.com**
 
 **Please attribute this tool in any reports or presentations:**
-> Malawi Cholera Cost Calculator (2026) - Interactive Planning Tool
+> Global Cholera Cost Calculator (2026) - Interactive Planning Tool
 
 ## Disclaimer
 
 This tool is provided for planning and analysis purposes. 
 - Results are estimates based on input parameters
 - Actual costs and outcomes will vary with implementation
-- Use WHO guidelines for validation
 - Consult epidemiologists for parameter verification
 - Always conduct sensitivity analysis for key assumptions
 
