@@ -804,13 +804,36 @@
                                 <input type="number" class="form-control" id="cfRateInput" value="1.0" min="0" max="10" step="0.1">
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Value of Statistical Life (USD) <span class="field-badge badge-calc">Calculated</span></label>
-                                <div class="input-group">
+                            <div class="mb-3" style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #0891b2;">
+                                <label class="form-label"><i class="fas fa-heart"></i> Mortality Valuation Method <span class="field-badge badge-calc">Calculated</span></label>
+                                <div class="d-flex gap-2 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="mortalityMethod" id="methodHCA" value="hca">
+                                        <label class="form-check-label small fw-bold" for="methodHCA">HCA (Conservative)</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="mortalityMethod" id="methodVSL" value="vsl" checked>
+                                        <label class="form-check-label small fw-bold" for="methodVSL">VSL (Standard)</label>
+                                    </div>
+                                </div>
+                                <div class="input-group mb-1">
                                     <span class="input-group-text">$</span>
                                     <input type="number" class="form-control" id="vslInput" value="27000" min="0" step="1000">
                                 </div>
-                                <small class="text-muted" id="vslNote">(use local estimate or leave default)</small>
+                                <small class="text-muted d-block" id="vslNote">(use local estimate or leave default)</small>
+                                <div id="mortalityMethodInfo" class="mt-2 small" style="color: #555;">
+                                    <div id="hcaInfo" style="display:none;">
+                                        <strong>Human Capital Approach:</strong> NPV of lost future GDP contribution.<br>
+                                        <code>Σ (GDPpc / (1+r)^t)</code>, r=3%, working years remaining.<br>
+                                        <span id="hcaValue" class="text-muted"></span>
+                                    </div>
+                                    <div id="vslInfo">
+                                        <strong>Value of Statistical Life:</strong> Willingness-to-pay to reduce mortality risk.<br>
+                                        <code>GDPpc × Multiplier</code> (typ. 50–100 for LDCs).<br>
+                                        <span id="vslValue" class="text-muted"></span>
+                                    </div>
+                                </div>
+                                <div id="mortalityCompare" class="mt-1 small text-muted" style="font-style:italic;"></div>
                             </div>
 
                             <div class="mb-4">

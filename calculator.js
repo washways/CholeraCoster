@@ -18,6 +18,7 @@ let currentScenario = 'bau';
 let calculationResults = {};
 let allScenarios = {};
 let currentCountry = { code: 'MWI', name: 'Malawi' };
+let _lastCountryData = null; // store latest WB data for mortality toggle
 
 // Country name mapping
 const countryNames = {
@@ -72,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (countrySelect) {
         countrySelect.addEventListener('change', handleCountryChange);
     }
-    
+
     await initializeCalculator();
     setupEventListeners();
 });
@@ -80,11 +81,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function handleCountryChange(event) {
     const newCountryCode = event.target.value;
     const newCountryName = countryNames[newCountryCode] || newCountryCode;
-    
+
     currentCountry = { code: newCountryCode, name: newCountryName };
     document.getElementById('headerCountry').textContent = newCountryName;
     document.getElementById('countryCodeInput').value = newCountryCode;
-    
+
     showLoading();
     await initializeCalculator();
     hideLoading();
@@ -94,10 +95,10 @@ async function initializeCalculator() {
     try {
         // Sync country code input with header selector
         document.getElementById('countryCodeInput').value = currentCountry.code;
-        
+
         // Load country data from public APIs
         const countryData = await fetchCountryData(currentCountry.code);
-        
+
         // Update API status indicator
         let statusText = countryData.success ? 'API status: ✓ Connected' : 'API status: ✗ Offline (using defaults)';
         document.getElementById('apiStatus').textContent = statusText;
@@ -134,7 +135,7 @@ async function initializeCalculator() {
         document.getElementById('apiLife').textContent = countryData.lifeExpectancy !== null ? `${countryData.lifeExpectancy.toFixed(1)} yrs` : '-';
         document.getElementById('apiUnemployment').textContent = countryData.unemploymentRate !== null ? `${countryData.unemploymentRate.toFixed(1)}%` : '-';
         document.getElementById('apiGini').textContent = countryData.gini !== null ? `${(countryData.gini / 100).toFixed(2)}` : '-';
-        
+
         // Proxy indicators from WB data
         if (countryData.proxies) {
             document.getElementById('apiHealthCapacity').textContent = countryData.proxies.healthCapacity || '-';
@@ -144,54 +145,96 @@ async function initializeCalculator() {
             document.getElementById('apiHealthWorkers').textContent = countryData.proxies.healthWorkerDensity || '-';
             document.getElementById('apiPoverty').textContent = countryData.proxies.estimatedPovertyRate || '-';
         }
-        
+
         if (countryData.year) {
             document.getElementById('apiYear').textContent = countryData.year;
         }
-        
-        // If GDP per capita is available, calculate derived parameters
-        if (countryData.gdpPerCapita) {
-            const suggested = Math.round(countryData.gdpPerCapita * 30); // VSL = 30× GDP
-            document.getElementById('vslNote').textContent = `(calculated ≈ $${suggested.toLocaleString()} = GDP × 30)`;
-            const vslInput = document.getElementById('vslInput');
-            if (!vslInput.value || vslInput.value === '27000') {
-                vslInput.value = suggested;
-                vslInput.classList.add('calculated-from-wb');
+
+        // Store WB data globally for mortality toggle
+        _lastCountryData = countryData;
+
+        // --- Auto-derive Population Growth Rate ---
+        if (countryData.populationGrowth !== null) {
+            const growthInput = document.getElementById('growthRateInput');
+            if (!growthInput.dataset.userEdited) {
+                growthInput.value = Math.round(countryData.populationGrowth * 10) / 10;
+                growthInput.classList.add('calculated-from-wb');
             }
-            
+        }
+
+        // --- Dual Mortality Valuation (HCA / VSL) ---
+        if (countryData.gdpPerCapita) {
+            updateMortalityMethod(); // sets vslInput based on selected method
+
             // Daily wage loss = GDP per capita / 250 working days
             const dailyWage = Math.round(countryData.gdpPerCapita / 250);
             const wageInput = document.getElementById('wageLossInput');
-            if (!wageInput.value || wageInput.value === '5') {
-                wageInput.value = dailyWage;
+            if (!wageInput.dataset.userEdited) {
+                wageInput.value = Math.max(1, dailyWage);
                 wageInput.classList.add('calculated-from-wb');
             }
-            document.getElementById('wageLossNote').textContent = `(estimated ≈ $${dailyWage} = GDP ÷ 250 working days)`;
+            document.getElementById('wageLossNote').textContent = `(≈ $${Math.max(1, dailyWage)} = GDPpc ÷ 250 days)`;
+
+            // --- Auto-derive Emergency & Benefit costs from GDP ---
+            const gdp = countryData.gdpPerCapita;
+
+            // Emergency WASH response cost (scales with economy)
+            const emergWash = Math.max(5, Math.round(gdp * 0.04));
+            const ewInput = document.getElementById('emergencyWashCostInput');
+            if (!ewInput.dataset.userEdited) { ewInput.value = emergWash; ewInput.classList.add('calculated-from-wb'); }
+
+            // Emergency OCV response cost
+            const emergOCV = Math.max(3, Math.round(gdp * 0.03));
+            const eoInput = document.getElementById('emergencyOCVCostInput');
+            if (!eoInput.dataset.userEdited) { eoInput.value = emergOCV; eoInput.classList.add('calculated-from-wb'); }
+
+            // Emergency Case Management cost
+            const emergCM = Math.max(2, Math.round(gdp * 0.02));
+            const ecInput = document.getElementById('emergencyCMCostInput');
+            if (!ecInput.dataset.userEdited) { ecInput.value = emergCM; ecInput.classList.add('calculated-from-wb'); }
+
+            // Funeral cost (cultural + economic)
+            const funeralCost = Math.max(20, Math.round(gdp * 0.15));
+            const fcInput = document.getElementById('funeralCostInput');
+            if (!fcInput.dataset.userEdited) { fcInput.value = funeralCost; fcInput.classList.add('calculated-from-wb'); }
+
+            // Diarrhea treatment cost (fraction of case management)
+            const caseCostVal = parseFloat(document.getElementById('caseCostInput').value) || 150;
+            const diarTreat = Math.max(10, Math.round(caseCostVal * 0.33));
+            const dtInput = document.getElementById('diarrhealTreatmentCostInput');
+            if (!dtInput.dataset.userEdited) { dtInput.value = diarTreat; dtInput.classList.add('calculated-from-wb'); }
         }
-        
-        // Estimate base case rate from sanitation coverage
+
+        // --- Estimate base case rate from sanitation coverage ---
         const sanitationFieldValue = countryData.safeSanitation;
         if (sanitationFieldValue !== null && sanitationFieldValue !== undefined) {
-            // Cholera risk inversely correlated with sanitation: worse sanitation = higher baseline incidence
-            // Formula: baseline = 0.001 + (1 - sanitation%) * 0.003
             const sanitationFraction = sanitationFieldValue / 100;
-            const estimatedBaseCaseRate = (0.001 + (1 - sanitationFraction) * 0.003) * 1000; // per 1000
+            const estimatedBaseCaseRate = (0.001 + (1 - sanitationFraction) * 0.003) * 1000;
             const baseCaseInput = document.getElementById('baseCaseRateInput');
-            if (!baseCaseInput.value || baseCaseInput.value === '0.5') {
+            if (!baseCaseInput.dataset.userEdited) {
                 baseCaseInput.value = Math.round(estimatedBaseCaseRate * 100) / 100;
                 baseCaseInput.classList.add('calculated-from-wb');
             }
             document.getElementById('baseCaseRateNote').textContent = `(estimated from sanitation: ${sanitationFieldValue.toFixed(1)}% coverage)`;
         }
-        
-        // Estimate case management cost from health spending level
+
+        // --- Estimate Case Fatality Rate from infant mortality ---
+        if (countryData.infantMortality !== null) {
+            // Higher infant mortality suggests weaker health system → higher CFR
+            const estCFR = Math.max(0.5, Math.min(4.0, 0.5 + countryData.infantMortality / 50));
+            const cfInput = document.getElementById('cfRateInput');
+            if (!cfInput.dataset.userEdited) {
+                cfInput.value = Math.round(estCFR * 10) / 10;
+                cfInput.classList.add('calculated-from-wb');
+            }
+        }
+
+        // --- Estimate case management cost from health spending ---
         if (countryData.healthExpenditure !== null && countryData.healthExpenditure !== undefined) {
-            // Countries with higher health spending tend to have higher case management costs
-            // Rough formula:  baseline + health_spending * multiplier
-            const healthSpending = countryData.healthExpenditure; // % of GDP
-            const estimatedCaseCost = Math.max(50, Math.min(300, 80 + healthSpending * 20)); // $50-300
+            const healthSpending = countryData.healthExpenditure;
+            const estimatedCaseCost = Math.max(50, Math.min(300, 80 + healthSpending * 20));
             const caseCostInput = document.getElementById('caseCostInput');
-            if (!caseCostInput.value || caseCostInput.value === '150') {
+            if (!caseCostInput.dataset.userEdited) {
                 caseCostInput.value = Math.round(estimatedCaseCost);
                 caseCostInput.classList.add('calculated-from-wb');
             }
@@ -204,7 +247,7 @@ async function initializeCalculator() {
         // Hide loading, show form
         document.getElementById('loading-data').classList.remove('active');
         document.getElementById('parameterForm').style.display = 'block';
-        
+
         // Set default calculations
         calculateAnalysis();
     } catch (error) {
@@ -228,7 +271,7 @@ async function initializeCalculator() {
     }
 }
 
-async function fetchCountryData(country='MWI', year=null) {
+async function fetchCountryData(country = 'MWI', year = null) {
     // if the user has disabled API access, immediately return default object
     if (!ENABLE_API) {
         console.warn('API disabled; returning default data');
@@ -279,6 +322,7 @@ async function fetchCountryData(country='MWI', year=null) {
     // Request multiple WB indicators for comprehensive country profile
     const codes = {
         population: 'SP.POP.TOTL',
+        populationGrowth: 'SP.POP.GROW',
         gdpPerCapita: 'NY.GDP.PCAP.CD',
         gdpTotal: 'NY.GDP.MKTP.CD',
         gdpGrowth: 'NY.GDP.MKTP.KD.ZG',
@@ -298,6 +342,7 @@ async function fetchCountryData(country='MWI', year=null) {
 
     const result = {
         population: 19130000,
+        populationGrowth: null,
         gdpPerCapita: null,
         gdpTotal: null,
         gdpGrowth: null,
@@ -408,7 +453,7 @@ async function fetchCountryData(country='MWI', year=null) {
     // Store in both caches
     result._ts = Date.now();
     _apiCache[cacheKey] = result;
-    try { localStorage.setItem('wb_cache_' + cacheKey, JSON.stringify(result)); } catch(e) {}
+    try { localStorage.setItem('wb_cache_' + cacheKey, JSON.stringify(result)); } catch (e) { }
 
     return result;
 }
@@ -467,13 +512,73 @@ function calculateProxyIndicators(data) {
     return proxies;
 }
 
+// --- Dual Mortality Valuation ---
+// HCA: Human Capital Approach — NPV of lost future GDP contribution
+function calculateHCA(gdpPerCapita, lifeExpectancy) {
+    if (!gdpPerCapita || !lifeExpectancy) return null;
+    const discountRate = 0.03;
+    const workingAgeStart = 25;
+    const retirementAge = Math.min(lifeExpectancy, 65);
+    const workingYears = Math.max(0, Math.round(retirementAge - workingAgeStart));
+    let npv = 0;
+    for (let t = 0; t < workingYears; t++) {
+        npv += gdpPerCapita / Math.pow(1 + discountRate, t);
+    }
+    return Math.round(npv);
+}
+
+// VSL: Value of Statistical Life — willingness-to-pay approach
+function calculateVSL(gdpPerCapita) {
+    if (!gdpPerCapita) return null;
+    // Multiplier scales with income: ~70 for very low-income, ~80 mid, ~100 upper-mid
+    const multiplier = gdpPerCapita < 1000 ? 70 : gdpPerCapita < 4000 ? 80 : 100;
+    return Math.round(gdpPerCapita * multiplier);
+}
+
+// Update UI based on selected mortality method
+function updateMortalityMethod() {
+    if (!_lastCountryData || !_lastCountryData.gdpPerCapita) return;
+    const method = document.querySelector('input[name="mortalityMethod"]:checked')?.value || 'vsl';
+    const hcaVal = calculateHCA(_lastCountryData.gdpPerCapita, _lastCountryData.lifeExpectancy);
+    const vslVal = calculateVSL(_lastCountryData.gdpPerCapita);
+    const vslInput = document.getElementById('vslInput');
+
+    // Show/hide info blocks
+    document.getElementById('hcaInfo').style.display = method === 'hca' ? 'block' : 'none';
+    document.getElementById('vslInfo').style.display = method === 'vsl' ? 'block' : 'none';
+
+    // Set the value (only if not user-edited)
+    if (!vslInput.dataset.userEdited) {
+        if (method === 'hca' && hcaVal) {
+            vslInput.value = hcaVal;
+        } else if (method === 'vsl' && vslVal) {
+            vslInput.value = vslVal;
+        }
+        vslInput.classList.add('calculated-from-wb');
+    }
+
+    // Update display labels
+    if (hcaVal) document.getElementById('hcaValue').textContent = `HCA = $${hcaVal.toLocaleString()}`;
+    if (vslVal) document.getElementById('vslValue').textContent = `VSL = $${vslVal.toLocaleString()}`;
+
+    // Comparison line
+    if (hcaVal && vslVal) {
+        document.getElementById('mortalityCompare').textContent = `Compare: HCA $${hcaVal.toLocaleString()} vs VSL $${vslVal.toLocaleString()}`;
+    }
+
+    const workYears = Math.round(Math.min(_lastCountryData.lifeExpectancy || 60, 65) - 25);
+    document.getElementById('vslNote').textContent = method === 'hca'
+        ? `(HCA: NPV of ${workYears} working years at $${_lastCountryData.gdpPerCapita.toLocaleString()}/yr, r=3%)`
+        : `(VSL: GDPpc × ${_lastCountryData.gdpPerCapita < 1000 ? 70 : _lastCountryData.gdpPerCapita < 4000 ? 80 : 100} = $${vslVal?.toLocaleString()})`;
+}
+
 function setupEventListeners() {
     // Calculate button
     document.getElementById('calculateBtn').addEventListener('click', calculateAnalysis);
-    
+
     // Reset button
     document.getElementById('resetBtn').addEventListener('click', resetDefaults);
-    
+
     // Export/Print buttons
     document.getElementById('exportCSVBtn').addEventListener('click', exportToCSV);
     document.getElementById('exportJSONBtn').addEventListener('click', exportToJSON);
@@ -492,7 +597,7 @@ function setupEventListeners() {
             document.getElementById('apiStatus').textContent = data.success ? 'API status: ✓ Connected' : 'API status: ✗ Offline (using defaults)';
         });
     }
-    
+
     // Scenario buttons
     document.querySelectorAll('.scenario-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -501,6 +606,20 @@ function setupEventListeners() {
             currentScenario = e.target.closest('.scenario-btn').dataset.scenario;
             updateResultsDisplay();
         });
+    });
+
+    // Mortality method radio toggle
+    document.querySelectorAll('input[name="mortalityMethod"]').forEach(radio => {
+        radio.addEventListener('change', () => updateMortalityMethod());
+    });
+
+    // Mark fields as user-edited when the user changes them manually
+    const autoFields = ['growthRateInput', 'vslInput', 'wageLossInput', 'baseCaseRateInput', 'cfRateInput',
+        'caseCostInput', 'emergencyWashCostInput', 'emergencyOCVCostInput', 'emergencyCMCostInput',
+        'diarrhealTreatmentCostInput', 'funeralCostInput'];
+    autoFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => { el.dataset.userEdited = 'true'; });
     });
 }
 
@@ -511,15 +630,15 @@ function getInputValues() {
         growthRate: parseFloat(document.getElementById('growthRateInput').value) / 100,
         baseYear: parseInt(document.getElementById('baseYearInput').value),
         duration: parseInt(document.getElementById('durationInput').value),
-        
+
         // WASH targets
         waterTarget: parseFloat(document.getElementById('waterTargetInput').value) / 100,
         sanitationTarget: parseFloat(document.getElementById('sanitationTargetInput').value) / 100,
         hygieneTarget: parseFloat(document.getElementById('hygieneTargetInput').value) / 100,
-        
+
         // OCV
         ocvTarget: parseFloat(document.getElementById('ocvTargetInput').value) / 100,
-        
+
         // Costs per capita
         waterCost: parseFloat(document.getElementById('waterCostInput').value),
         sanitationCost: parseFloat(document.getElementById('sanitationCostInput').value),
@@ -535,7 +654,7 @@ function getInputValues() {
         tourismBenefit: parseFloat(document.getElementById('tourismBenefitInput').value),
         countryCode: document.getElementById('countryCodeInput').value.toUpperCase(),
         wbYear: parseInt(document.getElementById('wbYearInput').value),
-        
+
         // Health parameters
         baseCaseRate: parseFloat(document.getElementById('baseCaseRateInput').value) / 1000,
         cfRate: parseFloat(document.getElementById('cfRateInput').value) / 100,
@@ -618,64 +737,64 @@ function calculateScenario(inputs, name, washReduction, ocvCoverage) {
             total: []
         }
     };
-    
+
     let totalCosts = 0;
     let totalBenefits = 0;
     let totalCasesAverted = 0;
     let totalDeathsAverted = 0;
-    
+
     for (let year = 0; year < inputs.duration; year++) {
         years.push(inputs.baseYear + year);
-        
+
         // Calculate population for this year
         const pop = inputs.population * Math.pow(1 + inputs.growthRate, year) * 1000; // Convert back to actual
-        
+
         // WASH implementation ramp-up (linear)
         const washProgress = Math.min(year / (inputs.duration * 0.6), 1) * washReduction;
-        
+
         // OCV implementation ramp-up
         const ocvProgress = ocvCoverage > 0 ? Math.min(year / (inputs.duration * 0.5), 1) * ocvCoverage : 0;
-        
+
         // Calculate costs
         const washCapitalCost = year < inputs.duration * 0.6 ? (pop * washProgress * (inputs.waterTarget * inputs.waterCost + inputs.sanitationTarget * inputs.sanitationCost + inputs.hygieneTarget * inputs.hygieneCost) / 1000) : 0;
         const washOMCost = washCapitalCost * 0.1; // 10% annual O&M
         const ocvCampaignCost = ocvCoverage > 0 ? pop * ocvProgress * inputs.ocvCost / 1000 : 0;
         const surveillanceCost = pop * 0.02; // $0.02 per person per year
-        
-        
+
+
         const yearCost = washCapitalCost + washOMCost + ocvCampaignCost + surveillanceCost;
         totalCosts += yearCost;
-        
+
         // Calculate health outcomes
         // WASH reduces transmission
         const caseReductionFromWash = washProgress * washReduction;
         // OCV provides protection
         const caseReductionFromOCV = ocvProgress * 0.85; // 85% efficacy
-        
+
         // Combined effect (not additive, more conservative)
         const totalCaseReduction = Math.min(caseReductionFromWash + caseReductionFromOCV * (1 - caseReductionFromWash), 0.95);
-        
+
         // Cases and deaths
         const baselineCases = pop * inputs.baseCaseRate;
         const projectedCases = baselineCases * (1 - totalCaseReduction);
         const casesAverted = baselineCases - projectedCases;
         const projectedDeaths = projectedCases * inputs.cfRate;
         const deathsAverted = baselineCases * inputs.cfRate * totalCaseReduction;
-        
+
         // Case management cost
         const cmCost = projectedCases * inputs.caseCost / 1000;
         totalCosts += cmCost;
         // additional per-capita program costs
         const otherCost = pop * inputs.otherCostPerCapita / 1000;
         totalCosts += otherCost;
-        
+
         // Calculate benefits
         // Lives saved benefit  (dollars)
         const lifesSavedBenefit = deathsAverted * inputs.vsl;
-        
+
         // Productivity loss averted (7-day illness)
         const productivityBenefit = casesAverted * inputs.wageLoss * 7;
-        
+
         // Additional benefit streams (user-configurable) – all in dollars
         const emergencyWashAverted = casesAverted * inputs.emergencyWashCost;
         const emergencyOCVAverted = casesAverted * inputs.emergencyOCVCost;
@@ -688,11 +807,11 @@ function calculateScenario(inputs, name, washReduction, ocvCoverage) {
         const washAccessTimeSavings = pop * washProgress * 0.5;
         const funeralCostsAvoided = deathsAverted * inputs.funeralCost;
         const tourismBenefit = casesAverted * inputs.tourismBenefit;
-        
+
         // Total benefits sum
         const yearBenefits = lifesSavedBenefit + productivityBenefit + emergencyWashAverted + emergencyOCVAverted + emergencyCMAverted + choleraProdTime + choleraValueLife + diarrheaTreatmentAverted + diarrheaProdTime + diarrheaValueLife + washAccessTimeSavings + funeralCostsAvoided + tourismBenefit;
         totalBenefits += yearBenefits;
-        
+
         // Store yearly data
         yearlyData.costs.washCapital.push(washCapitalCost);
         yearlyData.costs.washOM.push(washOMCost);
@@ -701,12 +820,12 @@ function calculateScenario(inputs, name, washReduction, ocvCoverage) {
         yearlyData.costs.caseManagement.push(cmCost);
         yearlyData.costs.other.push(otherCost);
         yearlyData.costs.total.push(yearCost + cmCost + otherCost);
-        
+
         yearlyData.outcomes.cases.push(projectedCases);
         yearlyData.outcomes.deaths.push(projectedDeaths);
         yearlyData.outcomes.casesAverted.push(casesAverted);
         yearlyData.outcomes.deathsAverted.push(deathsAverted);
-        
+
         yearlyData.benefits.emergencyWash.push(emergencyWashAverted);
         yearlyData.benefits.emergencyOCV.push(emergencyOCVAverted);
         yearlyData.benefits.emergencyCM.push(emergencyCMAverted);
@@ -719,11 +838,11 @@ function calculateScenario(inputs, name, washReduction, ocvCoverage) {
         yearlyData.benefits.funeral.push(funeralCostsAvoided);
         yearlyData.benefits.tourism.push(tourismBenefit);
         yearlyData.benefits.total.push(yearBenefits);
-        
+
         totalCasesAverted += casesAverted;
         totalDeathsAverted += deathsAverted;
     }
-    
+
     return {
         name: name,
         years: years,
@@ -741,7 +860,7 @@ function calculateScenario(inputs, name, washReduction, ocvCoverage) {
 
 function updateResultsDisplay() {
     const scenario = allScenarios[currentScenario];
-    
+
     updateCostsTab(scenario);
     updateOutcomesTab(scenario);
     updateBenefitsTab(scenario);
@@ -760,7 +879,7 @@ function updateCostsTab(scenario) {
     } else if (currentScenario === 'combined') {
         interventionLabel = '<span class=\"badge bg-success\">WASH + OCV</span>';
     }
-    
+
     // Update metrics with intervention label
     const costMetricsHTML = `
         <div class="col-md-12 mb-2">
@@ -782,23 +901,23 @@ function updateCostsTab(scenario) {
         </div>
     `;
     document.getElementById('costMetrics').innerHTML = costMetricsHTML;
-    
+
     // Update chart
     updateCostChart(scenario);
-    
+
     // Build cost table with scenario-aware filtering
     const costData = {};
-    
+
     // Always show surveillance and case management (baseline infrastructure)
     costData['Surveillance'] = scenario.yearlyData.costs.surveillance.reduce((a, b) => a + b, 0);
     costData['Case management (baseline)'] = scenario.yearlyData.costs.caseManagement.reduce((a, b) => a + b, 0);
     costData['Other program costs'] = scenario.yearlyData.costs.other.reduce((a, b) => a + b, 0);
-    
+
     // Show intervention-specific costs only if enabled
     const washCapital = scenario.yearlyData.costs.washCapital.reduce((a, b) => a + b, 0);
     const washOM = scenario.yearlyData.costs.washOM.reduce((a, b) => a + b, 0);
     const ocvCost = scenario.yearlyData.costs.ocvCampaigns.reduce((a, b) => a + b, 0);
-    
+
     if (washCapital > 0 || washOM > 0) {
         costData['WASH capital cost'] = washCapital;
         if (washOM > 0) costData['WASH O&M cost'] = washOM;
@@ -806,7 +925,7 @@ function updateCostsTab(scenario) {
     if (ocvCost > 0) {
         costData['OCV campaigns'] = ocvCost;
     }
-    
+
     let tableHTML = '';
     for (const [component, cost] of Object.entries(costData)) {
         const annualAvg = cost / scenario.years.length;
@@ -877,10 +996,10 @@ function updateOutcomesTab(scenario) {
         </div>
     `;
     document.getElementById('outcomeMetrics').innerHTML = outcomeMetricsHTML;
-    
+
     // Update chart
     updateOutcomeChart(scenario);
-    
+
     // Update table
     let tableHTML = `
         <tr>
@@ -909,7 +1028,7 @@ function updateBenefitsTab(scenario) {
     } else if (currentScenario === 'combined') {
         interventionLabel = '<span class=\"badge bg-success\">WASH + OCV</span>';
     }
-    
+
     // Update metrics
     const benefitMetricsHTML = `
         <div class="col-md-12 mb-2">
@@ -938,28 +1057,28 @@ function updateBenefitsTab(scenario) {
         </div>
     `;
     document.getElementById('benefitMetrics').innerHTML = benefitMetricsHTML;
-    
+
     // Update chart
     updateBenefitChart(scenario);
-    
+
     // Update benefit table with expanded categories
     const totals = {
-        emergencyWash: scenario.yearlyData.benefits.emergencyWash.reduce((a,b)=>a+b,0),
-        emergencyOCV: scenario.yearlyData.benefits.emergencyOCV.reduce((a,b)=>a+b,0),
-        emergencyCM: scenario.yearlyData.benefits.emergencyCM.reduce((a,b)=>a+b,0),
-        choleraProdTime: scenario.yearlyData.benefits.choleraProdTime.reduce((a,b)=>a+b,0),
-        choleraValueLife: scenario.yearlyData.benefits.choleraValueLife.reduce((a,b)=>a+b,0),
-        diarrheaTreatment: scenario.yearlyData.benefits.diarrheaTreatment.reduce((a,b)=>a+b,0),
-        diarrheaProdTime: scenario.yearlyData.benefits.diarrheaProdTime.reduce((a,b)=>a+b,0),
-        diarrheaValueLife: scenario.yearlyData.benefits.diarrheaValueLife.reduce((a,b)=>a+b,0),
-        washAccessTime: scenario.yearlyData.benefits.washAccessTime.reduce((a,b)=>a+b,0),
-        funeral: scenario.yearlyData.benefits.funeral.reduce((a,b)=>a+b,0),
-        tourism: scenario.yearlyData.benefits.tourism.reduce((a,b)=>a+b,0),
+        emergencyWash: scenario.yearlyData.benefits.emergencyWash.reduce((a, b) => a + b, 0),
+        emergencyOCV: scenario.yearlyData.benefits.emergencyOCV.reduce((a, b) => a + b, 0),
+        emergencyCM: scenario.yearlyData.benefits.emergencyCM.reduce((a, b) => a + b, 0),
+        choleraProdTime: scenario.yearlyData.benefits.choleraProdTime.reduce((a, b) => a + b, 0),
+        choleraValueLife: scenario.yearlyData.benefits.choleraValueLife.reduce((a, b) => a + b, 0),
+        diarrheaTreatment: scenario.yearlyData.benefits.diarrheaTreatment.reduce((a, b) => a + b, 0),
+        diarrheaProdTime: scenario.yearlyData.benefits.diarrheaProdTime.reduce((a, b) => a + b, 0),
+        diarrheaValueLife: scenario.yearlyData.benefits.diarrheaValueLife.reduce((a, b) => a + b, 0),
+        washAccessTime: scenario.yearlyData.benefits.washAccessTime.reduce((a, b) => a + b, 0),
+        funeral: scenario.yearlyData.benefits.funeral.reduce((a, b) => a + b, 0),
+        tourism: scenario.yearlyData.benefits.tourism.reduce((a, b) => a + b, 0),
     };
-    
+
     let tableHTML = '';
     for (const [name, value] of Object.entries(totals)) {
-        const label = name.replace(/([A-Z])/g, ' $1').replace(/^./, s=>s.toUpperCase());
+        const label = name.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
         tableHTML += `
             <tr>
                 <td>${label}</td>
@@ -969,7 +1088,7 @@ function updateBenefitsTab(scenario) {
         `;
     }
     document.getElementById('benefitTable').querySelector('tbody').innerHTML = tableHTML;
-    
+
     // Update summary
     document.getElementById('summaryTotalCost').textContent = `$${formatNumber(scenario.totalCosts)}`;
     document.getElementById('summaryTotalBenefit').textContent = `$${formatNumber(scenario.totalBenefits)}`;
@@ -981,7 +1100,7 @@ function updateBenefitsTab(scenario) {
 function updateComparisonTab() {
     // Update chart
     updateComparisonChart();
-    
+
     // Update table
     let tableHTML = '';
     for (const [key, scenario] of Object.entries(allScenarios)) {
@@ -1003,9 +1122,9 @@ function updateComparisonTab() {
 
 function updateCostChart(scenario) {
     const ctx = document.getElementById('costChart').getContext('2d');
-    
+
     if (costChartInstance) costChartInstance.destroy();
-    
+
     costChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1060,13 +1179,13 @@ function updateCostChart(scenario) {
 
 function updateOutcomeChart(scenario) {
     const ctx = document.getElementById('outcomeChart').getContext('2d');
-    
+
     if (outcomeChartInstance) outcomeChartInstance.destroy();
-    
+
     // build baseline series by adding projected + averted
     const projected = scenario.yearlyData.outcomes.cases;
     const averted = scenario.yearlyData.outcomes.casesAverted;
-    const baseline = projected.map((p,i) => p + averted[i]);
+    const baseline = projected.map((p, i) => p + averted[i]);
 
     outcomeChartInstance = new Chart(ctx, {
         type: 'line',
@@ -1077,7 +1196,7 @@ function updateOutcomeChart(scenario) {
                     label: 'Baseline Cases',
                     data: baseline,
                     borderColor: '#6b7280',
-                    borderDash: [5,5],
+                    borderDash: [5, 5],
                     backgroundColor: 'rgba(107,114,128,0.05)',
                     borderWidth: 2,
                     fill: false,
@@ -1119,9 +1238,9 @@ function updateOutcomeChart(scenario) {
 
 function updateBenefitChart(scenario) {
     const ctx = document.getElementById('benefitChart').getContext('2d');
-    
+
     if (benefitChartInstance) benefitChartInstance.destroy();
-    
+
     // choose a few major categories for visualization
     benefitChartInstance = new Chart(ctx, {
         type: 'bar',
@@ -1172,11 +1291,11 @@ function updateBenefitChart(scenario) {
 
 function updateComparisonChart() {
     const ctx = document.getElementById('comparisonChart').getContext('2d');
-    
+
     if (comparisonChartInstance) comparisonChartInstance.destroy();
-    
+
     const scenarios = Object.values(allScenarios);
-    
+
     comparisonChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
