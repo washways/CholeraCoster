@@ -302,22 +302,9 @@ async function fetchCountryData(country = 'MWI', year = null) {
     // --- Check in-memory cache first ---
     const cacheKey = `${country}_${year || 'latest'}`;
     if (_apiCache[cacheKey]) {
-        console.info('Using in-memory cached data for', cacheKey);
+        console.info('Using cached data for', cacheKey);
         return _apiCache[cacheKey];
     }
-
-    // --- Check localStorage cache (survives page reloads, 1-hour TTL) ---
-    try {
-        const stored = localStorage.getItem('wb_cache_' + cacheKey);
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            if (parsed._ts && (Date.now() - parsed._ts) < 3600000) { // 1 hour
-                console.info('Using localStorage cached data for', cacheKey);
-                _apiCache[cacheKey] = parsed;
-                return parsed;
-            }
-        }
-    } catch (e) { /* localStorage may be blocked */ }
 
     // Request multiple WB indicators for comprehensive country profile
     const codes = {
@@ -460,7 +447,6 @@ async function fetchCountryData(country = 'MWI', year = null) {
     if (successCount >= 5 && result.gdpPerCapita !== null) {
         result._ts = Date.now();
         _apiCache[cacheKey] = result;
-        try { localStorage.setItem('wb_cache_' + cacheKey, JSON.stringify(result)); } catch (e) { }
         console.info(`Cached ${successCount} indicators for ${cacheKey}`);
     } else {
         console.warn(`Only ${successCount} indicators succeeded (GDP: ${result.gdpPerCapita}) — not caching`);
@@ -652,6 +638,8 @@ function getInputValues() {
         growthRate: parseFloat(document.getElementById('growthRateInput').value) / 100,
         baseYear: parseInt(document.getElementById('baseYearInput').value),
         duration: parseInt(document.getElementById('durationInput').value),
+        washRampUp: parseFloat(document.getElementById('washRampUpInput').value) / 100,
+        ocvRampUp: parseFloat(document.getElementById('ocvRampUpInput').value) / 100,
 
         // WASH targets
         waterTarget: parseFloat(document.getElementById('waterTargetInput').value) / 100,
@@ -688,32 +676,34 @@ function getInputValues() {
 // add tooltip mapping and initialization
 function initTooltips() {
     const tooltips = {
-        populationInput: "Population at risk in cholera hotspots (thousands). Defaults from World Bank API when available.",
-        growthRateInput: "Annual population growth rate (%) used to project future population.",
+        populationInput: "Population at risk in cholera hotspots (thousands). Auto-filled: ~15% of total national population from World Bank API.",
+        growthRateInput: "Annual population growth rate (%). Auto-filled from WB indicator SP.POP.GROW.",
         baseYearInput: "Start year for projections.",
         durationInput: "Number of years for the roadmap (1–20).",
+        washRampUpInput: "Percentage of the project duration allocated for building WASH infrastructure. Capital costs scale over this period; O&M continues indefinitely.",
+        ocvRampUpInput: "Percentage of the project duration to reach the full target OCV vaccination coverage.",
         waterTargetInput: "Target percentage of population reached by improved water supply.",
         sanitationTargetInput: "Target percentage covered by sanitation improvements.",
         hygieneTargetInput: "Target percentage of population receiving hygiene promotion.",
         ocvTargetInput: "Target percentage of population vaccinated with oral cholera vaccine.",
-        waterCostInput: "Unit cost (USD) per person for water infrastructure. Use local estimates or defaults.",
+        waterCostInput: "Unit cost (USD) per person for water infrastructure.",
         sanitationCostInput: "Unit cost (USD) per person for sanitation infrastructure.",
         hygieneCostInput: "Unit cost (USD) per person for hygiene promotion.",
         ocvCostInput: "Cost (USD) per person for vaccine campaigns (vaccine + delivery).",
-        caseCostInput: "Average cost (USD) of treating one cholera case.",
+        caseCostInput: "Average cost (USD) of treating one cholera case. Auto-derived: $80 base + health spending × 20 (range $50–$300).",
         otherCostInput: "Additional per-capita program costs such as training, monitoring.",
-        emergencyWashCostInput: "Average emergency WASH response cost saved per cholera case.",
-        emergencyOCVCostInput: "Average emergency OCV response cost saved per case.",
-        emergencyCMCostInput: "Cost saved from emergency case management per case.",
-        diarrhealTreatmentCostInput: "Treatment cost (USD) avoided per diarrheal case due to cholera reduction.",
-        funeralCostInput: "Funeral cost avoided per death averted.",
+        emergencyWashCostInput: "Emergency WASH response cost per case. Auto-derived: GDPpc × 0.04, scaled to local economy.",
+        emergencyOCVCostInput: "Emergency OCV response cost per case. Auto-derived: GDPpc × 0.03.",
+        emergencyCMCostInput: "Emergency case management cost per case. Auto-derived: GDPpc × 0.02.",
+        diarrhealTreatmentCostInput: "Diarrhea treatment cost avoided per case. Auto-derived: case management cost × 0.33.",
+        funeralCostInput: "Funeral cost avoided per death. Auto-derived: GDPpc × 0.15.",
         tourismBenefitInput: "Economic benefit (USD) per case averted from tourism.",
-        baseCaseRateInput: "Baseline annual cholera cases per 1,000 population. Determines disease burden.",
-        cfRateInput: "Case fatality rate (%) used to convert cases to deaths.",
-        vslInput: "Value of statistical life (USD) used to monetize averted deaths; you can instead estimate mortality value as a multiple of GDP per capita, the present value of lifetime earnings (human capital), or convert DALYs averted using a cost-per-DALY figure.",
-        wageLossInput: "Daily wage loss (USD) per case used in productivity calculations.",
-        countryCodeInput: "ISO3 country code for World Bank API data (e.g., MWI).",
-        wbYearInput: "Year of World Bank data to fetch; the calculator will automatically try this year and up to 3 previous years if the requested year has no data."
+        baseCaseRateInput: "Baseline cholera cases per 1,000 population. Auto-derived from sanitation coverage: 1 + (1 - sanitation%) × 3.",
+        cfRateInput: "Case fatality rate (%). Auto-derived from infant mortality: 0.5 + infantMort/50 (range 0.5–4.0%).",
+        vslInput: "Mortality value per death. VSL method: GDPpc × income-scaled multiplier (70–100). HCA method: NPV of lost GDP over remaining working years at 3% discount rate.",
+        wageLossInput: "Daily wage loss (USD) per case. Auto-derived: GDPpc ÷ 250 working days.",
+        countryCodeInput: "ISO3 country code for World Bank API data (e.g., MWI, ETH, MOZ).",
+        wbYearInput: "Year of World Bank data to fetch. Falls back up to 3 years if requested year has no data."
     };
 
     Object.entries(tooltips).forEach(([id, text]) => {
@@ -771,16 +761,23 @@ function calculateScenario(inputs, name, washReduction, ocvCoverage) {
         // Calculate population for this year
         const pop = inputs.population * Math.pow(1 + inputs.growthRate, year) * 1000; // Convert back to actual
 
-        // WASH implementation ramp-up (linear)
-        const washProgress = Math.min(year / (inputs.duration * 0.6), 1) * washReduction;
+        // WASH implementation ramp-up (linear over specified % of duration)
+        const rampUpEnd = Math.ceil(inputs.duration * inputs.washRampUp);
+        const washProgress = Math.min(year / (rampUpEnd > 0 ? rampUpEnd : 1), 1) * washReduction;
 
-        // OCV implementation ramp-up
-        const ocvProgress = ocvCoverage > 0 ? Math.min(year / (inputs.duration * 0.5), 1) * ocvCoverage : 0;
+        // OCV implementation ramp-up (linear over specified % of duration)
+        const ocvRampEnd = Math.ceil(inputs.duration * inputs.ocvRampUp);
+        const ocvProgress = ocvCoverage > 0 ? Math.min(year / (ocvRampEnd > 0 ? ocvRampEnd : 1), 1) * ocvCoverage : 0;
 
         // Calculate costs
-        const washCapitalCost = year < inputs.duration * 0.6 ? (pop * washProgress * (inputs.waterTarget * inputs.waterCost + inputs.sanitationTarget * inputs.sanitationCost + inputs.hygieneTarget * inputs.hygieneCost) / 1000) : 0;
-        const washOMCost = washCapitalCost * 0.1; // 10% annual O&M
-        const ocvCampaignCost = ocvCoverage > 0 ? pop * ocvProgress * inputs.ocvCost / 1000 : 0;
+        // WASH capital costs during ramp-up only
+        const washCapitalCost = year < rampUpEnd ? (pop * washProgress * (inputs.waterTarget * inputs.waterCost + inputs.sanitationTarget * inputs.sanitationCost + inputs.hygieneTarget * inputs.hygieneCost) / 1000) : 0;
+        // O&M continues at full level after capital investment ends (based on peak infrastructure)
+        const peakWashProgress = washReduction; // fully ramped-up WASH progress
+        const washOMBase = pop * peakWashProgress * (inputs.waterTarget * inputs.waterCost + inputs.sanitationTarget * inputs.sanitationCost + inputs.hygieneTarget * inputs.hygieneCost) / 1000;
+        const washOMCost = year < rampUpEnd ? washCapitalCost * 0.1 : washOMBase * 0.1;
+        // OCV campaign costs (proportional to target coverage)
+        const ocvCampaignCost = ocvCoverage > 0 ? pop * inputs.ocvTarget * ocvProgress * inputs.ocvCost / 1000 : 0;
         const surveillanceCost = pop * 0.02; // $0.02 per person per year
 
 

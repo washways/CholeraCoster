@@ -662,7 +662,8 @@
                                         <li><strong>Safe water supply:</strong> <span id="apiWater">-</span> <small
                                                 style="color: #666;">(%)</small></li>
                                         <li><strong>Safely managed sanitation:</strong> <span id="apiSafe">-</span>
-                                            <small style="color: #666;">(%)</small></li>
+                                            <small style="color: #666;">(%)</small>
+                                        </li>
                                         <li><strong>Open defecation:</strong> <span id="apiOpen">-</span> <small
                                                 style="color: #666;">(%)</small></li>
                                     </ul>
@@ -754,6 +755,24 @@
                                     (years)</label>
                                 <input type="number" class="form-control" id="durationInput" value="10" min="1"
                                     max="20">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-chart-line"></i> WASH Capital Ramp-Up
+                                    (%)</label>
+                                <input type="number" class="form-control" id="washRampUpInput" value="60" min="10"
+                                    max="100" step="5">
+                                <small class="text-muted">Percentage of project duration until WASH infrastructure is
+                                    fully built</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-chart-line"></i> OCV Campaign Ramp-Up
+                                    (%)</label>
+                                <input type="number" class="form-control" id="ocvRampUpInput" value="50" min="10"
+                                    max="100" step="5">
+                                <small class="text-muted">Percentage of project duration to reach OCV vaccination
+                                    target</small>
                             </div>
 
                             <!-- Data Source Selection -->
