@@ -472,12 +472,18 @@ async function fetchCountryData(country = 'MWI', year = null) {
 function calculateProxyIndicators(data) {
     const proxies = {};
 
-    // Healthcare system capacity proxy
-    if (data.healthExpenditure !== null) {
-        // Health spending correlates with system capacity
+    // Healthcare system capacity — use ABSOLUTE per-capita health spending, not just % of GDP
+    if (data.healthExpenditure !== null && data.gdpPerCapita !== null) {
+        const absHealthSpend = (data.healthExpenditure / 100) * data.gdpPerCapita; // USD per capita
+        if (absHealthSpend < 50) proxies.healthCapacity = `Very low ($${absHealthSpend.toFixed(0)}/person/yr)`;
+        else if (absHealthSpend < 150) proxies.healthCapacity = `Low ($${absHealthSpend.toFixed(0)}/person/yr)`;
+        else if (absHealthSpend < 500) proxies.healthCapacity = `Moderate ($${absHealthSpend.toFixed(0)}/person/yr)`;
+        else proxies.healthCapacity = `Well-resourced ($${absHealthSpend.toFixed(0)}/person/yr)`;
+    } else if (data.healthExpenditure !== null) {
+        // Fallback: % only
         if (data.healthExpenditure < 3) proxies.healthCapacity = 'Low (limited resources)';
         else if (data.healthExpenditure < 6) proxies.healthCapacity = 'Moderate (developing)';
-        else proxies.healthCapacity = 'High (well-resourced)';
+        else proxies.healthCapacity = 'High spending (% GDP) — verify capacity';
     }
 
     // Urbanization and water/sanitation correlation
@@ -487,29 +493,34 @@ function calculateProxyIndicators(data) {
 
     // Stunting as proxy for underlying malnutrition/WASH quality
     if (data.stunting !== null) {
-        if (data.stunting > 30) proxies.nutritionStatus = 'Severe stunting (food security issue)';
-        else if (data.stunting > 15) proxies.nutritionStatus = 'Moderate stunting (nutrition concern)';
-        else proxies.nutritionStatus = 'Good nutrition status';
+        if (data.stunting > 30) proxies.nutritionStatus = `Severe stunting (${data.stunting.toFixed(0)}% — food security issue)`;
+        else if (data.stunting > 15) proxies.nutritionStatus = `Moderate stunting (${data.stunting.toFixed(0)}%)`;
+        else proxies.nutritionStatus = `Good nutrition (${data.stunting.toFixed(0)}% stunting)`;
     }
 
-    // Mortality from under-5 (captures overall development/healthcare)
+    // Development level from under-5 mortality
     if (data.underFiveMortality !== null) {
-        proxies.developmentLevel = `Under-5 mortality: ${data.underFiveMortality.toFixed(0)} per 1,000 (development proxy)`;
+        let level = 'High development';
+        if (data.underFiveMortality > 60) level = 'Low development';
+        else if (data.underFiveMortality > 25) level = 'Lower-middle development';
+        else if (data.underFiveMortality > 10) level = 'Upper-middle development';
+        proxies.developmentLevel = `${level} (U5M: ${data.underFiveMortality.toFixed(0)} per 1,000)`;
     }
 
     // Estimated poverty rate (inverse correlation with GDP per capita and literacy)
     if (data.gdpPerCapita !== null && data.literacy !== null) {
-        // Very rough proxy: lower GDP + lower literacy = higher poverty
         const povertyProxy = Math.min(80, Math.max(5, 100 - (data.gdpPerCapita / 200) - data.literacy / 3));
         proxies.estimatedPovertyRate = `~${povertyProxy.toFixed(0)}% (estimated from GDP + literacy)`;
     }
 
-    // Healthcare worker availability proxy (from health spending and mortality)
-    if (data.healthExpenditure !== null && data.infantMortality !== null) {
-        const healthWorkerCapacity = data.healthExpenditure * (1000 / (data.infantMortality + 1));
-        if (healthWorkerCapacity < 50) proxies.healthWorkerDensity = 'Very low';
-        else if (healthWorkerCapacity < 100) proxies.healthWorkerDensity = 'Low to moderate';
-        else proxies.healthWorkerDensity = 'Moderate to high';
+    // Healthcare worker availability proxy — use absolute health spending per capita
+    if (data.healthExpenditure !== null && data.infantMortality !== null && data.gdpPerCapita !== null) {
+        const absSpend = (data.healthExpenditure / 100) * data.gdpPerCapita;
+        const workerProxy = absSpend / (data.infantMortality + 1);
+        if (workerProxy < 1) proxies.healthWorkerDensity = 'Very low';
+        else if (workerProxy < 3) proxies.healthWorkerDensity = 'Low';
+        else if (workerProxy < 10) proxies.healthWorkerDensity = 'Moderate';
+        else proxies.healthWorkerDensity = 'Adequate';
     }
 
     // Disease environment risk (from stunting, mortality, open defecation)
@@ -1072,33 +1083,58 @@ function updateBenefitsTab(scenario) {
     // Update chart
     updateBenefitChart(scenario);
 
-    // Update benefit table with expanded categories
-    const totals = {
-        emergencyWash: scenario.yearlyData.benefits.emergencyWash.reduce((a, b) => a + b, 0),
-        emergencyOCV: scenario.yearlyData.benefits.emergencyOCV.reduce((a, b) => a + b, 0),
-        emergencyCM: scenario.yearlyData.benefits.emergencyCM.reduce((a, b) => a + b, 0),
-        choleraProdTime: scenario.yearlyData.benefits.choleraProdTime.reduce((a, b) => a + b, 0),
-        choleraValueLife: scenario.yearlyData.benefits.choleraValueLife.reduce((a, b) => a + b, 0),
-        diarrheaTreatment: scenario.yearlyData.benefits.diarrheaTreatment.reduce((a, b) => a + b, 0),
-        diarrheaProdTime: scenario.yearlyData.benefits.diarrheaProdTime.reduce((a, b) => a + b, 0),
-        diarrheaValueLife: scenario.yearlyData.benefits.diarrheaValueLife.reduce((a, b) => a + b, 0),
-        washAccessTime: scenario.yearlyData.benefits.washAccessTime.reduce((a, b) => a + b, 0),
-        funeral: scenario.yearlyData.benefits.funeral.reduce((a, b) => a + b, 0),
-        tourism: scenario.yearlyData.benefits.tourism.reduce((a, b) => a + b, 0),
+    // Readable label map with tooltip descriptions
+    const labelMap = {
+        emergencyWash: { label: 'Emergency WASH Response', tip: 'Cost of emergency WASH interventions avoided per cholera case averted' },
+        emergencyOCV: { label: 'Emergency OCV Response', tip: 'Cost of reactive OCV campaigns avoided per case averted' },
+        emergencyCM: { label: 'Emergency Case Management', tip: 'Emergency case management costs avoided per case averted' },
+        choleraProdTime: { label: 'Cholera Productivity Loss', tip: 'Lost wages and economic output during cholera illness episodes' },
+        choleraValueLife: { label: 'Cholera Mortality Value', tip: 'Economic value of cholera deaths averted (HCA or VSL method)' },
+        diarrheaTreatment: { label: 'Diarrhea Treatment Savings', tip: 'Treatment costs saved from co-reduced diarrheal disease cases' },
+        diarrheaProdTime: { label: 'Diarrhea Productivity Loss', tip: 'Lost wages avoided from co-reduced diarrheal episodes' },
+        diarrheaValueLife: { label: 'Diarrhea Mortality Value', tip: 'Economic value of diarrheal deaths averted' },
+        washAccessTime: { label: 'WASH Access Time Savings', tip: 'Time saved from improved water/sanitation access (valued at daily wage)' },
+        funeral: { label: 'Funeral Costs Avoided', tip: 'Funeral and burial expenses avoided per death averted' },
+        tourism: { label: 'Tourism Economic Benefit', tip: 'Tourism revenue preserved by reducing cholera outbreak visibility' },
     };
 
-    let tableHTML = '';
-    for (const [name, value] of Object.entries(totals)) {
-        const label = name.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
-        tableHTML += `
-            <tr>
-                <td>${label}</td>
-                <td class="text-end">$${formatNumber(value)}</td>
-                <td class="text-end">${((value / scenario.totalBenefits) * 100).toFixed(1)}%</td>
-            </tr>
-        `;
+    // Build benefit totals
+    const totals = {};
+    for (const key of Object.keys(labelMap)) {
+        if (scenario.yearlyData.benefits[key]) {
+            totals[key] = scenario.yearlyData.benefits[key].reduce((a, b) => a + b, 0);
+        } else {
+            totals[key] = 0;
+        }
     }
-    document.getElementById('benefitTable').querySelector('tbody').innerHTML = tableHTML;
+
+    // Store for sorting
+    window._benefitTotals = totals;
+    window._benefitLabelMap = labelMap;
+    window._benefitTotalBenefits = scenario.totalBenefits;
+
+    // Render table (default: by value descending)
+    renderBenefitTable('value', 'desc');
+
+    // Attach sort handlers (only once)
+    const sortValBtn = document.getElementById('sortByValue');
+    const sortPctBtn = document.getElementById('sortByPercent');
+    if (sortValBtn && !sortValBtn._bound) {
+        sortValBtn._bound = true;
+        sortValBtn._dir = 'desc';
+        sortValBtn.addEventListener('click', () => {
+            sortValBtn._dir = sortValBtn._dir === 'desc' ? 'asc' : 'desc';
+            renderBenefitTable('value', sortValBtn._dir);
+        });
+    }
+    if (sortPctBtn && !sortPctBtn._bound) {
+        sortPctBtn._bound = true;
+        sortPctBtn._dir = 'desc';
+        sortPctBtn.addEventListener('click', () => {
+            sortPctBtn._dir = sortPctBtn._dir === 'desc' ? 'asc' : 'desc';
+            renderBenefitTable('value', sortPctBtn._dir);
+        });
+    }
 
     // Update summary
     document.getElementById('summaryTotalCost').textContent = `$${formatNumber(scenario.totalCosts)}`;
@@ -1106,6 +1142,31 @@ function updateBenefitsTab(scenario) {
     document.getElementById('summaryNetBenefit').textContent = `$${formatNumber(scenario.netBenefit)}`;
     document.getElementById('summaryBCRatio').textContent = scenario.bcRatio.toFixed(2);
     document.getElementById('summaryDALY').textContent = `$${formatNumber(scenario.costPerDALY)}`;
+}
+
+function renderBenefitTable(sortBy, direction) {
+    const totals = window._benefitTotals;
+    const labelMap = window._benefitLabelMap;
+    const totalBenefits = window._benefitTotalBenefits;
+    if (!totals || !labelMap) return;
+
+    // Sort entries
+    const entries = Object.entries(totals);
+    entries.sort((a, b) => direction === 'desc' ? b[1] - a[1] : a[1] - b[1]);
+
+    let tableHTML = '';
+    for (const [key, value] of entries) {
+        const info = labelMap[key] || { label: key, tip: '' };
+        const pct = totalBenefits > 0 ? ((value / totalBenefits) * 100).toFixed(1) : '0.0';
+        tableHTML += `
+            <tr title="${info.tip}">
+                <td>${info.label}</td>
+                <td class="text-end">$${formatNumber(value)}</td>
+                <td class="text-end">${pct}%</td>
+            </tr>
+        `;
+    }
+    document.getElementById('benefitTable').querySelector('tbody').innerHTML = tableHTML;
 }
 
 function updateComparisonTab() {
