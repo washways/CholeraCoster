@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cholera Cost Calculator - Multi-Country</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💙</text></svg>">
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #0891b2;
+            --accent-color: #dc2626;
+            --success-color: #16a34a;
+            --warning-color: #ea580c;
+        }
+
+        * {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 2.5rem;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .form-control, .form-select {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            padding: 12px 30px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--accent-color);
+            border: none;
+            color: white;
+        }
+
+        .tab-content {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .nav-tabs .nav-link {
+            color: var(--primary-color);
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-weight: 600;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: white;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .metric-card {
+            padding: 20px;
+            background: linear-gradient(135deg, #f0f9ff 0%, #f0f4ff 100%);
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary-color);
+            margin-bottom: 15px;
+        }
+
+        .metric-card h6 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .metric-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+        }
+
+        .metric-card.cost {
+            border-left-color: var(--accent-color);
+        }
+
+        .metric-card.cost h6 {
+            color: var(--accent-color);
+        }
+
+        .metric-card.cost .value {
+            color: var(--accent-color);
+        }
+
+        .metric-card.success {
+            border-left-color: var(--success-color);
+            background: linear-gradient(135deg, #f0fdf4 0%, #f0fef5 100%);
+        }
+
+        .metric-card.success h6 {
+            color: var(--success-color);
+        }
+
+        .metric-card.success .value {
+            color: var(--success-color);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .scenario-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .scenario-btn {
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 0.9rem;
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .scenario-btn.active {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--secondary-color);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner-border {
+            color: var(--secondary-color);
+        }
+
+        .data-table {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .data-table thead {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+
+        .summary-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .comparison-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .comparison-table td, .comparison-table th {
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            text-align: right;
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .alert-info {
+            background: #e0f2fe;
+            color: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            .chart-container {
+                height: 300px;
+            }
+            .scenario-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-group-text {
+            background: white;
+            border: 2px solid #e5e7eb;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        /* API-derived field highlight */
+        .api-derived {
+            background-color: #dbeafe !important;
+            border-color: #3b82f6 !important;
+            color: #1e40af;
+        }
+        .api-derived-label {
+            font-weight: 600;
+            color: #0288d1;
+        }
+
+        /* Calculated from WB data */
+        .calculated-from-wb {
+            background-color: #dcfce7 !important;
+            border-color: #22c55e !important;
+            color: #15803d;
+        }
+
+        .field-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 5px;
+            white-space: nowrap;
+        }
+
+        .badge-api {
+            background: #dbeafe;
+            color: #0288d1;
+        }
+
+        .badge-calc {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        /* Splash screen */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .splash-screen.hidden {
+            display: none;
+        }
+
+        .splash-content {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .splash-content h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .splash-content h3 {
+            color: var(--secondary-color);
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .splash-content ul {
+            margin-left: 20px;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .splash-content li {
+            margin-bottom: 8px;
+        }
+
+        .splash-badge {
+            display: inline-block;
+            background: #e0f7fa;
+            color: #0288d1;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-left: 5px;
+        }
+
+        .splash-close {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .splash-close button {
+            padding: 10px 30px;
+            font-weight: 600;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .loading-spinner .spinner-border {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            color: var(--secondary-color);
+        }
+
+        .loading-spinner p {
+            margin: 10px 0 0 0;
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* Country selector in header */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .header-controls label {
+            color: white;
+            margin: 0;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .header-controls select {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            background: white;
+            color: var(--primary-color);
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        .header-controls select:focus {
+            outline: 2px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splashScreen">
+        <div class="splash-content">
+            <h1><i class="fas fa-heartbeat"></i> Welcome!</h1>
+            
+            <h3>How to Use This Calculator</h3>
+            <ul>
+                <li><strong>Select a country</strong> from the dropdown at the top (defaults to Malawi)</li>
+                <li><strong>Wait for data to load</strong> — you'll see a loading spinner while fetching World Bank API data</li>
+                <li><strong>Blue-highlighted fields</strong> <span class="splash-badge">API</span> are automatically filled from World Bank data</li>
+                <li><strong>Enter your parameters</strong> in the left panel (costs, targets, health assumptions)</li>
+                <li><strong>Click "Calculate Analysis"</strong> to run the model</li>
+                <li><strong>Compare scenarios</strong> using the compact scenario buttons (BAU, WASH, OCV, WASH+OCV)</li>
+                <li><strong>View results</strong> in tabs: Costs, Health Outcomes, Benefits, Comparison</li>
+                <li><strong>Export or print</strong> your analysis using buttons at the bottom</li>
+            </ul>
+
+            <h3>Key Features</h3>
+            <ul>
+                <li>Hover over <strong>any field</strong> for detailed explanations</li>
+                <li>All calculations run locally in your browser—no data uploaded</li>
+                <li>Results update automatically as you change parameters</li>
+                <li>All monetary values are in USD</li>
+            </ul>
+
+            <div class="splash-close">
+                <button type="button" class="btn btn-primary" id="splashCloseBtn">Get Started →</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="container">
+            <h1><i class="fas fa-heartbeat"></i> <span id="headerCountry">Malawi</span> Cholera Cost Calculator</h1>
+            <p>Comprehensive Investment Analysis Tool for Cholera Prevention & Control</p>
+            <div class="header-controls">
+                <label for="countrySelect"><i class="fas fa-globe"></i> Select Country:</label>
+                <select id="countrySelect">
+                    <option value="MWI">Malawi</option>
+                    <option value="KEN">Kenya</option>
+                    <option value="UGA">Uganda</option>
+                    <option value="TZA">Tanzania</option>
+                    <option value="ZMB">Zambia</option>
+                    <option value="ZWE">Zimbabwe</option>
+                    <option value="RWA">Rwanda</option>
+                    <option value="BDI">Burundi</option>
+                    <option value="MOZ">Mozambique</option>
+                    <option value="ZAF">South Africa</option>
+                    <option value="ETH">Ethiopia</option>
+                    <option value="SDN">Sudan</option>
+                    <option value="COD">Dem. Rep. Congo</option>
+                    <option value="NGA">Nigeria</option>
+                    <option value="GHA">Ghana</option>
+                    <option value="BGD">Bangladesh</option>
+                    <option value="IND">India</option>
+                    <option value="YEM">Yemen</option>
+                    <option value="HTI">Haiti</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner-border" role="status"></div>
+            <p>Loading data...</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle"></i> <strong>Welcome!</strong> This calculator helps analyze the costs and benefits of cholera prevention interventions in Malawi. 
+                    Population and economic data are automatically loaded from global APIs.
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Input Panel -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-sliders-h"></i> Input Parameters
+                    </div>
+                    <div class="card-body">
+                        <div id="loading-data" class="loading active">
+                            <div class="spinner-border" role="status"></div>
+                            <p>Loading Malawi data...</p>
+                        </div>
+
+                        <form id="parameterForm" style="display: none;">
+                            <!-- HOW IT WORKS -->
+                            <div class="mb-4">
+                                <h5><i class="fas fa-info-circle"></i> How it works</h5>
+                                <p>This calculator uses a combination of user input and publicly available data to project the costs and benefits of cholera prevention strategies in Malawi.</p>
+                                <ul>
+                                    <li>Population data (highlighted in <span class="api-derived-label">blue</span>) is automatically loaded from the <a href="https://data.worldbank.org/" target="_blank">World Bank API</a> when the page loads.  Additional indicators such as GDP per capita, sanitation coverage, health expenditure and stunting are also fetched and shown in the panel.</li>
+                                    <li>The model computes a phased ramp-up of WASH interventions and OCV campaigns over the chosen timeline.</li>
+                                    <li>Health outcomes are derived from baseline cholera rates, coverage targets, and efficacy assumptions; cases and deaths averted flow through a rich set of economic formulas to calculate benefits including emergency response savings, diarrhea treatment avoided, productivity gains, funeral/tourism impacts and more.</li>
+                                    <li>Costs include WASH capital and O&amp;M, vaccination campaigns, surveillance, case management and a user‑defined "other program" per‑capita line item.</li>
+                                    <li>All formulas run in your browser using JavaScript; no data is ever sent to a server.</li>
+                                </ul>
+                                <p>Fields pre-filled from the API are visually distinguished so you can easily identify automatic inputs.</p>
+                            </div>
+                            <!-- Demographics -->
+                            <!-- API-derived statistics -->
+                            <div id="apiWarning" class="alert alert-warning" style="display:none;">
+                                Unable to fetch data from the World Bank API – defaults are being used. You can enter values manually.
+                            </div>
+                            <div id="apiStats" class="mb-4" style="background: #f8fafc; border-left: 4px solid #0891b2; padding: 15px; border-radius: 6px;">
+                                <h6 style="color: #0891b2; margin-bottom: 12px;"><i class="fas fa-database"></i> World Bank Profile (Data Year: <span id="apiYear">-</span>)</h6>
+                                
+                                <!-- Demographics -->
+                                <div style="margin-bottom: 12px;">
+                                    <small style="font-weight: 600; color: #1e3a8a;">Demographics</small>
+                                    <ul class="list-unstyled small" style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
+                                        <li><strong>Population:</strong> <span id="apiPop">-</span></li>
+                                        <li><strong>Urbanization:</strong> <span id="apiUrban">-</span> <small style="color: #666;">(% urban)</small></li>
+                                    </ul>
+                                </div>
+
+                                <!-- Economic -->
+                                <div style="margin-bottom: 12px;">
+                                    <small style="font-weight: 600; color: #1e3a8a;">Economic Indicators</small>
+                                    <ul class="list-unstyled small" style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
+                                        <li><strong>GDP per capita:</strong> <span id="apiGDP">-</span></li>
+                                        <li><strong>GDP growth:</strong> <span id="apiGrowth">-</span> <small style="color: #666;">(annual %)</small></li>
+                                        <li><strong>Unemployment:</strong> <span id="apiUnemployment">-</span> <small style="color: #666;">(estimated %)</small></li>
+                                        <li><strong>Poverty rate:</strong> <span id="apiPoverty">-</span> <small style="color: #666;">(estimated from GDP + literacy)</small></li>
+                                    </ul>
+                                </div>
+
+                                <!-- WASH & Health -->
+                                <div style="margin-bottom: 12px;">
+                                    <small style="font-weight: 600; color: #1e3a8a;">WASH & Water Access</small>
+                                    <ul class="list-unstyled small" style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
+                                        <li><strong>Safe water supply:</strong> <span id="apiWater">-</span> <small style="color: #666;">(%)</small></li>
+                                        <li><strong>Safely managed sanitation:</strong> <span id="apiSafe">-</span> <small style="color: #666;">(%)</small></li>
+                                        <li><strong>Open defecation:</strong> <span id="apiOpen">-</span> <small style="color: #666;">(%)</small></li>
+                                    </ul>
+                                </div>
+
+                                <!-- Health Metrics -->
+                                <div style="margin-bottom: 12px;">
+                                    <small style="font-weight: 600; color: #1e3a8a;">Health & Mortality</small>
+                                    <ul class="list-unstyled small" style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
+                                        <li><strong>Life expectancy:</strong> <span id="apiLife">-</span> <small style="color: #666;">(years)</small></li>
+                                        <li><strong>Infant mortality:</strong> <span id="apiInfant">-</span> <small style="color: #666;">(per 1,000)</small></li>
+                                        <li><strong>Under-5 mortality:</strong> <span id="apiUnderFive">-</span> <small style="color: #666;">(per 1,000)</small></li>
+                                        <li><strong>Child stunting:</strong> <span id="apiStunt">-</span> <small style="color: #666;">(%)</small></li>
+                                        <li><strong>Health spending:</strong> <span id="apiHealth">-</span> <small style="color: #666;">(% GDP)</small></li>
+                                    </ul>
+                                </div>
+
+                                <!-- Proxy Indicators (Estimated) -->
+                                <div style="background: white; padding: 10px; border-radius: 4px; border-left: 3px solid #10b981;">
+                                    <small style="font-weight: 600; color: #15803d;"><i class="fas fa-calculator"></i> Estimated Indicators (from WB data)</small>
+                                    <ul class="list-unstyled small" style="margin: 6px 0; padding-left: 12px; font-size: 0.85rem;">
+                                        <li><strong>Health system capacity:</strong> <span id="apiHealthCapacity">-</span></li>
+                                        <li><strong>Development level:</strong> <span id="apiDevelopment">-</span></li>
+                                        <li><strong>Nutrition status:</strong> <span id="apiNutrition">-</span></li>
+                                        <li><strong>Disease environment:</strong> <span id="apiDiseaseRisk">-</span></li>
+                                        <li><strong>Health worker density:</strong> <span id="apiHealthWorkers">-</span> (estimated capacity)</li>
+                                        <li><strong>Inequality (Gini):</strong> <span id="apiGini">-</span> <small style="color: #666;">(0=equal, 1=unequal)</small></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div id="apiStatus" class="mb-2 small text-muted"></div>
+                            <button type="button" id="apiTestBtn" class="btn btn-sm btn-outline-secondary mb-2">
+                                <i class="fas fa-network-wired"></i> Test API
+                            </button>
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-users"></i> Hotspot Population (thousands) <span class="badge bg-info" id="apiPopBadge">API</span></label>
+                                <input type="number" class="form-control api-derived" id="populationInput" value="500" min="1" max="100000">
+                                <small class="text-muted">Population at risk in cholera hotspots (auto-filled from World Bank)</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-percent"></i> Annual Population Growth (%)</label>
+                                <input type="number" class="form-control" id="growthRateInput" value="2.8" min="0" max="10" step="0.1">
+                            </div>
+
+                            <!-- Timeline & Data Source -->
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-calendar"></i> Base Year</label>
+                                <input type="number" class="form-control" id="baseYearInput" value="2025" min="2020" max="2030">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-flag-checkered"></i> Roadmap Duration (years)</label>
+                                <input type="number" class="form-control" id="durationInput" value="10" min="1" max="20">
+                            </div>
+
+                            <!-- Data Source Selection -->
+                            <hr>
+                            <h6 class="mt-4 mb-3"><i class="fas fa-globe"></i> World Bank Data Source</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label">Country Code</label>
+                                <input list="countryList" type="text" class="form-control" id="countryCodeInput" value="MWI" maxlength="3" placeholder="e.g., MWI, KEN, UGA">
+                                <datalist id="countryList">
+                                    <option value="MWI">
+                                    <option value="KEN">
+                                    <option value="UGA">
+                                    <option value="TZA">
+                                    <option value="ZMB">
+                                    <option value="ZWE">
+                                    <option value="RWA">
+                                </datalist>
+                                <small class="text-muted">ISO 3-letter country code for World Bank API (start typing or pick)</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">WB Data Year</label>
+                                <select class="form-select" id="wbYearInput">
+                                    <option value="2025" selected>2025</option>
+                                    <option value="2024">2024</option>
+                                    <option value="2023">2023</option>
+                                    <option value="2022">2022</option>
+                                    <option value="2021">2021</option>
+                                    <option value="2020">2020</option>
+                                </select>
+                                <small class="text-muted">Choose nearest available data year</small>
+                            </div>
+
+                            <!-- WASH Parameters -->
+                            <hr>
+                            <h6 class="mt-4 mb-3"><i class="fas fa-droplet"></i> WASH Intervention Targets</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label">Water Coverage Target (%)</label>
+                                <input type="number" class="form-control" id="waterTargetInput" value="85" min="0" max="100">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Sanitation Coverage Target (%)</label>
+                                <input type="number" class="form-control" id="sanitationTargetInput" value="80" min="0" max="100">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Hygiene Promotion Coverage Target (%)</label>
+                                <input type="number" class="form-control" id="hygieneTargetInput" value="75" min="0" max="100">
+                            </div>
+
+                            <!-- Vaccine Parameters -->
+                            <hr>
+                            <h6 class="mt-4 mb-3"><i class="fas fa-syringe"></i> OCV Campaign Parameters</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label">OCV Coverage Target (%)</label>
+                                <input type="number" class="form-control" id="ocvTargetInput" value="70" min="0" max="100">
+                            </div>
+
+                            <!-- Cost Parameters -->
+                            <hr>
+                            <h6 class="mt-4 mb-3"><i class="fas fa-dollar-sign"></i> Unit Costs (USD)</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label">Water Supply (per capita)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="waterCostInput" value="45" min="0" step="5">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Sanitation (per capita)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="sanitationCostInput" value="35" min="0" step="5">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Hygiene Promotion (per capita)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="hygieneCostInput" value="8" min="0" step="1">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">OCV Campaign Cost (per person)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="ocvCostInput" value="3.50" min="0" step="0.1">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Case Management Cost per Case <span class="field-badge badge-calc">Calculated</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="caseCostInput" value="150" min="0" step="10">
+                                </div>
+                                <small class="text-muted" id="caseCostNote"></small>
+                            </div>                            <div class="mb-3">
+                                <label class="form-label">Other Program Costs (per capita)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="otherCostInput" value="0" min="0" step="1">
+                                </div>
+                                <small class="text-muted">E.g. training, community mobilization, monitoring</small>
+                            </div>
+                            <!-- Health Parameters -->
+                            <hr>
+                            <h6 class="mt-4 mb-3"><i class="fas fa-hospital"></i> Health Impact Parameters</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label">Base Annual Cholera Cases (per 1000) <span class="field-badge badge-calc">Calculated</span></label>
+                                <input type="number" class="form-control" id="baseCaseRateInput" value="0.5" min="0" step="0.1">
+                                <small class="text-muted" id="baseCaseRateNote"></small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Case Fatality Rate (%)</label>
+                                <input type="number" class="form-control" id="cfRateInput" value="1.0" min="0" max="10" step="0.1">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Value of Statistical Life (USD) <span class="field-badge badge-calc">Calculated</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="vslInput" value="27000" min="0" step="1000">
+                                </div>
+                                <small class="text-muted" id="vslNote">(use local estimate or leave default)</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">Daily Wage Loss per Case (USD) <span class="field-badge badge-calc">Calculated</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="wageLossInput" value="5" min="0" step="0.5">
+                                </div>
+                                <small class="text-muted" id="wageLossNote"></small>
+                            </div>
+
+                            <!-- Benefit Cost Assumptions -->
+                            <hr>
+                            <h6 class="mt-4 mb-3"><i class="fas fa-dollar-sign"></i> Benefit Unit-Cost Assumptions (USD)</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label">Emergency WASH Response per Case</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="emergencyWashCostInput" value="20" min="0" step="1">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Emergency OCV Response per Case</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="emergencyOCVCostInput" value="15" min="0" step="1">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Emergency Case Management per Case</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="emergencyCMCostInput" value="10" min="0" step="1">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Diarrhea Treatment Cost Avoided per Case</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="diarrhealTreatmentCostInput" value="50" min="0" step="1">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Funeral Costs Avoided per Death</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="funeralCostInput" value="100" min="0" step="5">
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">Tourism Benefit per Case Averted</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="tourismBenefitInput" value="2" min="0" step="0.5">
+                                </div>
+                            </div>
+
+                            <!-- Button -->
+                            <button type="button" class="btn btn-primary w-100" id="calculateBtn">
+                                <i class="fas fa-calculator"></i> Calculate Analysis
+                            </button>
+
+                            <button type="button" class="btn btn-outline-secondary w-100 mt-2" id="resetBtn">
+                                <i class="fas fa-redo"></i> Reset to Defaults
+                            </button>
+
+                            <div class="btn-group w-100 mt-3" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-info" id="exportCSVBtn">
+                                    <i class="fas fa-download"></i> CSV
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-info" id="exportJSONBtn">
+                                    <i class="fas fa-code"></i> JSON
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-info" id="printBtn">
+                                    <i class="fas fa-print"></i> Print
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="col-lg-8">
+                <!-- Scenario Selection -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-bar"></i> Scenarios
+                    </div>
+                    <div class="card-body">
+                        <div class="scenario-selector" id="scenarioSelector">
+                            <button class="scenario-btn active" data-scenario="bau">
+                                <i class="fas fa-chart-line"></i><br>Business as Usual
+                            </button>
+                            <button class="scenario-btn" data-scenario="wash">
+                                <i class="fas fa-droplet"></i><br>WASH Only
+                            </button>
+                            <button class="scenario-btn" data-scenario="ocv">
+                                <i class="fas fa-syringe"></i><br>OCV Only
+                            </button>
+                            <button class="scenario-btn" data-scenario="combined">
+                                <i class="fas fa-shield-alt"></i><br>WASH + OCV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Tabs -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-results"></i> Results Analysis
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="costs-tab" data-bs-toggle="tab" href="#costs">Costs</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="outcomes-tab" data-bs-toggle="tab" href="#outcomes">Health Outcomes</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="benefits-tab" data-bs-toggle="tab" href="#benefits">Benefits</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="comparison-tab" data-bs-toggle="tab" href="#comparison">Comparison</a>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content mt-3">
+                            <!-- Costs Tab -->
+                            <div id="costs" class="tab-pane fade show active">
+                                <div class="row" id="costMetrics"></div>
+                                <div class="chart-container">
+                                    <canvas id="costChart"></canvas>
+                                </div>
+                                <table class="table data-table" id="costTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Cost Component</th>
+                                            <th class="text-end">Total Cost (USD)</th>
+                                            <th class="text-end">Annual Average (USD)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+
+                            <!-- Health Outcomes Tab -->
+                            <div id="outcomes" class="tab-pane fade">
+                                <div class="row" id="outcomeMetrics"></div>
+                                <div class="chart-container">
+                                    <canvas id="outcomeChart"></canvas>
+                                </div>
+                                <table class="table data-table" id="outcomeTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Outcome</th>
+                                            <th class="text-end">Total Cases/Deaths</th>
+                                            <th class="text-end">Cases/Deaths Averted</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+
+                            <!-- Benefits Tab -->
+                            <div id="benefits" class="tab-pane fade">
+                                <div class="row" id="benefitMetrics"></div>
+                                <div class="chart-container">
+                                    <canvas id="benefitChart"></canvas>
+                                </div>
+                                <table class="table data-table" id="benefitTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Benefit Category</th>
+                                            <th class="text-end">Total Benefit (USD)</th>
+                                            <th class="text-end">% of Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                                <div class="summary-section">
+                                    <h6 class="mb-3">Cost-Benefit Summary</h6>
+                                    <table class="comparison-table">
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th>Value</th>
+                                        </tr>
+                                        <tr>
+                                            <td>Total Costs</td>
+                                            <td id="summaryTotalCost">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Total Benefits</td>
+                                            <td id="summaryTotalBenefit">-</td>
+                                        </tr>
+                                        <tr style="font-weight: bold; background: #f0f9ff;">
+                                            <td>Net Benefit (Benefit - Cost)</td>
+                                            <td id="summaryNetBenefit">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Benefit-Cost Ratio</td>
+                                            <td id="summaryBCRatio">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Cost per DALY Averted</td>
+                                            <td id="summaryDALY">-</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Comparison Tab -->
+                            <div id="comparison" class="tab-pane fade">
+                                <div class="chart-container">
+                                    <canvas id="comparisonChart"></canvas>
+                                </div>
+                                <table class="table data-table" id="comparisonTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Scenario</th>
+                                            <th class="text-end">Total Cost</th>
+                                            <th class="text-end">Cases Averted</th>
+                                            <th class="text-end">Deaths Averted</th>
+                                            <th class="text-end">Net Benefit</th>
+                                            <th class="text-end">B/C Ratio</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="row mt-5 mb-5">
+            <div class="col-12">
+                <div class="text-center text-white">
+                    <p><small>
+                        Data source: World Bank, WHO, CDC. All calculations based on epidemiological modeling.
+                        <br>Last updated: 2026 | For planning and analysis purposes only.
+                    </small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="calculator.js"></script>
+    <script src="export-functions.js"></script>
+</body>
+</html>

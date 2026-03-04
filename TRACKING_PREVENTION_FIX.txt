@@ -1,0 +1,39 @@
+FIXING "TRACKING PREVENTION BLOCKED" ERRORS
+==============================================
+
+The calculator requires API access to World Bank data, which is blocked by your browser's tracking prevention.
+
+SOLUTION: Temporarily disable tracking prevention for this local file
+
+FIREFOX (Enhanced Tracking Protection):
+1. Open the calculator (index.html)
+2. Click the shield icon (🛡️) to the LEFT of the address bar
+3. Click "Disable protection on this site"
+4. Reload the page (Ctrl+R)
+5. API should now connect successfully
+
+CHROME / EDGE (Tracking Prevention):
+1. Open the calculator
+2. Click the lock icon to the LEFT of the address bar
+3. Find "Tracking cookies" or "Third-party cookies" 
+4. Toggle it OFF or set to "Allow"
+5. Reload the page (Ctrl+R)
+6. API should now connect successfully
+
+ALTERNATIVE (Less Recommended):
+- Use a private/incognito window (less strict privacy)
+- Use a different browser (Chrome/Firefox in standard mode)
+- Manually enter population and GDP instead of loading from API
+
+WHAT TO EXPECT AFTER FIXING:
+- Console errors about "Tracking Prevention blocked" should stop
+- API test button should show "success"
+- "Data Year" field should show 2024 or 2023 (whichever year has data available)
+- Calculator will load World Bank population and GDP data automatically
+- Benefits/costs should display correctly
+
+If still not working:
+1. Press F12 to open Developer Tools
+2. Click "Console" tab
+3. Click the "Test API" button
+4. Copy any error messages and report them
