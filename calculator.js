@@ -9,7 +9,10 @@ const ENABLE_API = true;
 
 // If you deploy a Cloudflare Worker proxy, set its base URL here (no trailing slash).
 // Example: https://my-wb-proxy.your-domain.workers.dev
-const CLOUDFLARE_WB_PROXY = 'https://cholera.washways1.workers.dev/';
+const CLOUDFLARE_WB_PROXY = 'https://cholera.washways1.workers.dev';
+
+// In-memory cache for API data (keyed by country code)
+let _apiCache = {};
 
 let currentScenario = 'bau';
 let calculationResults = {};
@@ -253,24 +256,44 @@ async function fetchCountryData(country='MWI', year=null) {
         };
     }
 
+    // --- Check in-memory cache first ---
+    const cacheKey = `${country}_${year || 'latest'}`;
+    if (_apiCache[cacheKey]) {
+        console.info('Using in-memory cached data for', cacheKey);
+        return _apiCache[cacheKey];
+    }
+
+    // --- Check localStorage cache (survives page reloads, 1-hour TTL) ---
+    try {
+        const stored = localStorage.getItem('wb_cache_' + cacheKey);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed._ts && (Date.now() - parsed._ts) < 3600000) { // 1 hour
+                console.info('Using localStorage cached data for', cacheKey);
+                _apiCache[cacheKey] = parsed;
+                return parsed;
+            }
+        }
+    } catch (e) { /* localStorage may be blocked */ }
+
     // Request multiple WB indicators for comprehensive country profile
     const codes = {
-        population: 'SP.POP.TOTL',                  // Total population
-        gdpPerCapita: 'NY.GDP.PCAP.CD',             // GDP per capita (USD)
-        gdpTotal: 'NY.GDP.MKTP.CD',                 // GDP total
-        gdpGrowth: 'NY.GDP.MKTP.KD.ZG',            // GDP growth (annual %)
-        urbanPopulation: 'SP.URB.TOTL.IN.ZS',      // Urban population (%)
-        openDefecation: 'SH.STA.ODFC.ZS',          // Open defecation (%)
-        safeSanitation: 'SH.STA.SMSS.ZS',          // Safely managed sanitation (%)
-        safeWater: 'SH.H2O.SMDW.ZS',               // Safe water supply (%)
-        healthExpenditure: 'SH.XPD.CHEX.GD.ZS',    // Health expenditure (% GDP)
-        infantMortality: 'SP.DYN.IMRT.IN',         // Infant mortality (per 1000)
-        underFiveMortality: 'SP.DYN.CDRT.IN',     // Under-5 mortality (per 1000)
-        stunting: 'SH.STA.STNT.ZS',                // Child stunting (%)
-        lifeExpectancy: 'SP.DYN.LE00.IN',          // Life expectancy (years)
-        literacy: 'SE.ADT.LITR.ZS',                // Adult literacy (%)
-        unemploymentRate: 'SL.UEM.TOTL.ZS',       // Unemployment (%)
-        gini: 'SI.POV.GINI'                        // Gini coefficient (inequality)
+        population: 'SP.POP.TOTL',
+        gdpPerCapita: 'NY.GDP.PCAP.CD',
+        gdpTotal: 'NY.GDP.MKTP.CD',
+        gdpGrowth: 'NY.GDP.MKTP.KD.ZG',
+        urbanPopulation: 'SP.URB.TOTL.IN.ZS',
+        openDefecation: 'SH.STA.ODFC.ZS',
+        safeSanitation: 'SH.STA.SMSS.ZS',
+        safeWater: 'SH.H2O.SMDW.ZS',
+        healthExpenditure: 'SH.XPD.CHEX.GD.ZS',
+        infantMortality: 'SP.DYN.IMRT.IN',
+        underFiveMortality: 'SH.DYN.MORT',
+        stunting: 'SH.STA.STNT.ZS',
+        lifeExpectancy: 'SP.DYN.LE00.IN',
+        literacy: 'SE.ADT.LITR.ZS',
+        unemploymentRate: 'SL.UEM.TOTL.ZS',
+        gini: 'SI.POV.GINI'
     };
 
     const result = {
@@ -290,86 +313,102 @@ async function fetchCountryData(country='MWI', year=null) {
         literacy: null,
         unemploymentRate: null,
         gini: null,
-        country: 'Malawi',
+        country: countryNames[country] || country,
         year: null,
         success: false
     };
 
-    // Try current year first, then fall back to previous years
-    const yearOrder = year ? [year, year-1, year-2, year-3, null] : [null];
-
-    // Helper function to fetch using either a local proxy or public CORS proxies
-    async function fetchWithProxy(url) {
-            // Try configured Cloudflare Worker proxy first (if set)
-            if (typeof CLOUDFLARE_WB_PROXY === 'string' && CLOUDFLARE_WB_PROXY.trim().length > 0) {
-                try {
-                    const cfUrl = CLOUDFLARE_WB_PROXY + `/` + url.replace('https://api.worldbank.org/v2/', '');
-                    const resp = await fetch(cfUrl);
-                    if (resp.ok) return await resp.json();
-                } catch (err) {
-                    console.debug('cloudflare proxy failed:', err.message);
-                }
-            }
-
-            // next try the local Flask proxy (must be started separately)
-            const localProxy = `http://localhost:5001/wb${url.replace('https://api.worldbank.org/v2', '')}`;
-            try {
-                const resp = await fetch(localProxy);
-                if (resp.ok) return await resp.json();
-            } catch (err) {
-                console.debug('local proxy failed:', err.message);
-            }
-
-            // public proxies as fallback
-            const proxies = [
-                (u) => `https://api.codetabs.com/v1/proxy?url=${encodeURIComponent(u)}`,
-                (u) => `https://cors.sh/${u}`,
-                (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
-            ];
-
-        for (const proxyFn of proxies) {
-            try {
-                const proxiedUrl = proxyFn(url);
-                const resp = await fetch(proxiedUrl, { timeout: 5000 });
-                if (resp.ok) {
-                    return await resp.json();
-                }
-            } catch (err) {
-                console.debug(`proxy failed:`, err.message);
-                continue;
-            }
+    // Fetch with an 8-second AbortController timeout
+    async function fetchWithTimeout(url, timeoutMs = 8000) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const resp = await fetch(url, { signal: controller.signal });
+            clearTimeout(timer);
+            if (resp.ok) return await resp.json();
+            return null;
+        } catch (err) {
+            clearTimeout(timer);
+            return null;
         }
-        throw new Error('All CORS proxies failed');
     }
 
-    for (const [key, code] of Object.entries(codes)) {
-        let foundValue = false;
-        for (const tryYear of yearOrder) {
-            if (foundValue) break;
-            let baseUrl = `https://api.worldbank.org/v2/country/${country}/indicator/${code}?format=json&per_page=1`;
-            if (tryYear) baseUrl += `&date=${tryYear}`;
-            try {
-                const data = await fetchWithProxy(baseUrl);
-                if (data[1] && Array.isArray(data[1]) && data[1].length > 0 && data[1][0] && data[1][0].value !== null) {
-                    const val = data[1][0].value;
+    // Try proxies in order: Cloudflare → localhost → public CORS proxies
+    async function fetchWithProxy(url) {
+        // 1. Cloudflare Worker proxy
+        if (typeof CLOUDFLARE_WB_PROXY === 'string' && CLOUDFLARE_WB_PROXY.trim().length > 0) {
+            const cfUrl = CLOUDFLARE_WB_PROXY + '/' + url.replace('https://api.worldbank.org/v2/', '');
+            const data = await fetchWithTimeout(cfUrl);
+            if (data) return data;
+        }
+        // 2. Local Flask proxy
+        const localProxy = `http://localhost:5001/wb${url.replace('https://api.worldbank.org/v2', '')}`;
+        const localData = await fetchWithTimeout(localProxy, 3000);
+        if (localData) return localData;
+        // 3. Public CORS proxies
+        const proxies = [
+            (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+            (u) => `https://api.codetabs.com/v1/proxy?url=${encodeURIComponent(u)}`
+        ];
+        for (const proxyFn of proxies) {
+            const data = await fetchWithTimeout(proxyFn(url));
+            if (data) return data;
+        }
+        return null;
+    }
+
+    // Build date range: request several years so the API returns the best available
+    let dateParam = '';
+    if (year) {
+        dateParam = `&date=${year - 3}:${year}`;
+    } else {
+        dateParam = '&date=2019:2025&MRV=1';
+    }
+
+    // --- Fetch ALL indicators in PARALLEL ---
+    console.time('WB API fetch');
+    const entries = Object.entries(codes);
+    const promises = entries.map(([key, code]) => {
+        const url = `https://api.worldbank.org/v2/country/${country}/indicator/${code}?format=json&per_page=10${dateParam}`;
+        return fetchWithProxy(url)
+            .then(data => ({ key, code, data }))
+            .catch(err => ({ key, code, data: null }));
+    });
+
+    const results = await Promise.all(promises);
+    console.timeEnd('WB API fetch');
+
+    // Parse results — pick the most recent non-null value from each response
+    for (const { key, code, data } of results) {
+        try {
+            if (!data || !Array.isArray(data) || !data[1] || !Array.isArray(data[1])) continue;
+            // data[1] is an array of records sorted by date descending
+            for (const record of data[1]) {
+                if (record && record.value !== null && record.value !== undefined) {
+                    const val = record.value;
                     if (key === 'population') {
                         result.population = parseInt(val) || result.population;
-                        result.year = data[1][0].date;
+                        result.year = record.date;
                     } else {
                         result[key] = parseFloat(val);
                     }
                     result.success = true;
-                    foundValue = true;
-                    console.info(`✓ ${code} = ${val} (year ${result.year})`);
+                    console.info(`✓ ${code} = ${val} (year ${record.date})`);
+                    break; // take the first (most recent) non-null value
                 }
-            } catch (err) {
-                console.debug(`${code} fetch error:`, err.message);
             }
+        } catch (err) {
+            console.debug(`${code} parse error:`, err.message);
         }
     }
 
     // Calculate proxy indicators from WB data
     result.proxies = calculateProxyIndicators(result);
+
+    // Store in both caches
+    result._ts = Date.now();
+    _apiCache[cacheKey] = result;
+    try { localStorage.setItem('wb_cache_' + cacheKey, JSON.stringify(result)); } catch(e) {}
 
     return result;
 }
@@ -553,40 +592,15 @@ function initTooltips() {
 
 async function calculateAnalysis() {
     const inputs = getInputValues();
-    
-    // Show loading while fetching
-    showLoading();
-    
-    // refresh API-driven demographics if user changed country/year
-    const apiData = await fetchCountryData(inputs.countryCode, inputs.wbYear);
-    
-    // Hide loading after fetch
-    hideLoading();
-    
-    // update API status line whenever we refresh
-    document.getElementById('apiStatus').textContent = apiData.success ? 'API status: ✓ Connected' : 'API status: ✗ Offline (using defaults)';
-    if (apiData.success) {
-        // Hide warning and show API stats when API succeeds
-        document.getElementById('apiWarning').style.display = 'none';
-        document.getElementById('apiStats').style.display = 'block';
-        
-        const proj = Math.round(apiData.population * 1.005);
-        const popInput = document.getElementById('populationInput');
-        popInput.value = Math.round(proj / 1000 * 0.15);
-        popInput.classList.add('api-derived');
-    } else {
-        document.getElementById('apiWarning').style.display = 'block';
-        document.getElementById('populationInput').classList.remove('api-derived');
-    }
 
-    // Calculate for each scenario
+    // Calculate for each scenario (no API re-fetch — data was loaded at init)
     allScenarios = {
         bau: calculateScenario(inputs, 'Business as Usual', 0, 0),
         wash: calculateScenario(inputs, 'WASH Only', 0.75, 0),
         ocv: calculateScenario(inputs, 'OCV Only', 0, 0.70),
         combined: calculateScenario(inputs, 'WASH + OCV', 0.75, 0.70),
     };
-    
+
     calculationResults = allScenarios[currentScenario];
     updateResultsDisplay();
 }
