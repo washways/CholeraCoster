@@ -274,27 +274,26 @@ function exportToWord() {
     const dateStr = new Date().toLocaleDateString();
     const imgs = captureCharts();
 
-    // Collect chart images as MHTML parts
-    const boundary = '----=_NextPart_CHOLERA_EXPORT';
+    // Collect chart images as MHTML parts with simple filename Content-Location
+    const boundary = '----=_NextPart_CHOLERA';
     const chartParts = [];
-    const chartCids = {};
-    let partIdx = 0;
+    const chartFiles = {};
     for (const [id, dataUrl] of Object.entries(imgs)) {
         if (!dataUrl) continue;
-        // dataUrl is like "data:image/png;base64,iVBOR..."
         const base64Data = dataUrl.split(',')[1];
         if (!base64Data) continue;
-        const cid = id + '@chart.local';
-        chartCids[id] = 'cid:' + cid;
+        const filename = id + '.png';
+        chartFiles[id] = filename;
+        // Split base64 into 76-char lines for MIME compliance
+        const lines = base64Data.match(/.{1,76}/g) || [];
         chartParts.push(
             '--' + boundary + '\r\n' +
             'Content-Type: image/png\r\n' +
             'Content-Transfer-Encoding: base64\r\n' +
-            'Content-Location: ' + cid + '\r\n' +
+            'Content-Location: ' + filename + '\r\n' +
             '\r\n' +
-            base64Data.match(/.{1,76}/g).join('\r\n') + '\r\n'
+            lines.join('\r\n') + '\r\n'
         );
-        partIdx++;
     }
 
     // Build comparison rows
@@ -355,17 +354,16 @@ function exportToWord() {
         }
     }
 
-    // Chart image tags using cid references
-    const comparisonImgTag = chartCids.comparisonChart ? '<img src="' + chartCids.comparisonChart + '" width="560" style="display:block;margin:8px auto;" />' : '';
-    const outcomeImgTag = chartCids.outcomeChart ? '<img src="' + chartCids.outcomeChart + '" width="560" style="display:block;margin:8px auto;" />' : '';
-    const costImgTag = chartCids.costChart ? '<img src="' + chartCids.costChart + '" width="560" style="display:block;margin:8px auto;" />' : '';
-    const benefitImgTag = chartCids.benefitChart ? '<img src="' + chartCids.benefitChart + '" width="560" style="display:block;margin:8px auto;" />' : '';
+    // Chart image tags — src must exactly match Content-Location filenames
+    function imgTag(chartId) {
+        return chartFiles[chartId] ? '<p style="text-align:center"><img src="' + chartFiles[chartId] + '" width="540" /></p>' : '';
+    }
 
-    const htmlPart =
+    const htmlContent =
         '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
         '<head><meta charset="utf-8"><title>Investment Case – ' + countryName + '</title>' +
         '<style>' +
-        'body{font-family:Calibri,Arial,sans-serif;max-width:800px;margin:0 auto;line-height:1.4;color:#1e293b}' +
+        'body{font-family:Calibri,Arial,sans-serif;margin:20px;line-height:1.4;color:#1e293b}' +
         'h1{color:#1e3a8a;text-align:center;font-size:20pt;border-bottom:2px solid #1e3a8a;padding-bottom:5px;margin-bottom:5px}' +
         'h2{color:#0891b2;font-size:13pt;margin-top:14px;margin-bottom:4px;border-bottom:1px solid #e2e8f0}' +
         'h3{color:#0f172a;font-size:11pt;margin-top:8px;margin-bottom:3px}' +
@@ -382,46 +380,46 @@ function exportToWord() {
         '<h2>1. Scenario Comparison</h2>' +
         '<p>Four strategies are compared: Business as Usual (no intervention), WASH infrastructure alone, Oral Cholera Vaccination alone, and a combined WASH + OCV approach.</p>' +
         '<table><tr><th>Scenario</th><th>Total Cost</th><th>Total Benefit</th><th>Cases Averted</th><th>Deaths Averted</th><th>Net Benefit</th><th>B/C Ratio</th><th>Cost/DALY</th></tr>' + comparisonRows + '</table>' +
-        comparisonImgTag +
+        imgTag('comparisonChart') +
         '<h2>2. Health Outcomes Across All Scenarios</h2>' +
         '<p>Projected cholera cases and deaths for ' + countryName + ' under each strategy over the ' + inputs.duration + '-year period:</p>' +
         '<table><tr><th>Scenario</th><th>Total Cases</th><th>Total Deaths</th><th>Cases Averted</th><th>Deaths Averted</th></tr>' + healthRows + '</table>' +
-        outcomeImgTag +
+        imgTag('outcomeChart') +
         '<h2>3. Investment Costs</h2>' +
         '<p>Breakdown of costs for infrastructure, operations, and vaccination delivery across each scenario in ' + countryName + '.</p>' +
-        costImgTag +
+        imgTag('costChart') +
         '<h2>4. Economic Return by Intervention</h2>' +
         '<p>Detailed economic benefits for each active intervention scenario, including lives saved, productivity restored, and emergency costs avoided.</p>' +
         econSections +
-        benefitImgTag +
+        imgTag('benefitChart') +
         '<div class="highlight"><strong>Recommendation:</strong> Investing in cholera prevention in ' + countryName + ' is strongly justified. The <strong>' + bestName + '</strong> strategy delivers the highest return, averting <strong>' + formatNumber(bestScenario.casesAverted) + '</strong> cases and <strong>' + formatNumber(bestScenario.deathsAverted) + '</strong> deaths with every $1 invested returning <strong>$' + bestScenario.bcRatio.toFixed(2) + '</strong> in economic benefit.</div>' +
         '<div class="footer">Generated by the Global Cholera Cost Calculator &bull; Contact: washways1@gmail.com</div>' +
         '</body></html>';
 
-    // Build MHTML document
-    const mhtmlContent =
+    // Build MHTML document — Word natively parses this format with embedded images
+    const mhtml =
         'MIME-Version: 1.0\r\n' +
         'Content-Type: multipart/related; boundary="' + boundary + '"\r\n' +
         '\r\n' +
         '--' + boundary + '\r\n' +
         'Content-Type: text/html; charset="utf-8"\r\n' +
-        'Content-Transfer-Encoding: quoted-printable\r\n' +
+        'Content-Location: index.html\r\n' +
         '\r\n' +
-        htmlPart + '\r\n' +
+        htmlContent + '\r\n' +
         chartParts.join('') +
         '--' + boundary + '--';
 
-    const blob = new Blob([mhtmlContent], {
+    const blob = new Blob([mhtml], {
         type: 'application/msword'
     });
 
     const url = URL.createObjectURL(blob);
-    const element = document.createElement('a');
-    element.href = url;
+    const a = document.createElement('a');
+    a.href = url;
     const safeCountryName = countryName.replace(/\s+/g, '_');
-    element.download = 'Investment_Case_' + safeCountryName + '_' + dateStr.replace(/\//g, '-') + '.doc';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    a.download = 'Investment_Case_' + safeCountryName + '_' + dateStr.replace(/\//g, '-') + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
