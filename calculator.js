@@ -17,7 +17,7 @@ let _apiCache = {};
 let currentScenario = 'bau';
 let calculationResults = {};
 let allScenarios = {};
-let currentCountry = { code: 'MWI', name: 'Global' };
+let currentCountry = { code: 'MWI', name: 'Malawi' };
 let _lastCountryData = null; // store latest WB data for mortality toggle
 
 // Country name mapping
