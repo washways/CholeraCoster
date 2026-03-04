@@ -114,62 +114,136 @@ function downloadFile(content, filename, mimeType) {
     document.body.removeChild(element);
 }
 
-// Print results
+// Helper: get country display name
+function getCountryDisplayName() {
+    return (currentCountry && currentCountry.name && currentCountry.name !== 'Global') ? currentCountry.name : (document.getElementById('countryCodeInput') ? document.getElementById('countryCodeInput').value : 'Selected Country');
+}
+
+// Helper: build the shared comparison table HTML for all 4 scenarios
+function buildComparisonTableHTML() {
+    let rows = '';
+    for (const [key, s] of Object.entries(allScenarios)) {
+        rows += '<tr>';
+        rows += '<td>' + s.name + '</td>';
+        rows += '<td style="text-align:right">$' + formatNumber(s.totalCosts) + '</td>';
+        rows += '<td style="text-align:right">$' + formatNumber(s.totalBenefits) + '</td>';
+        rows += '<td style="text-align:right">' + formatNumber(s.casesAverted) + '</td>';
+        rows += '<td style="text-align:right">' + formatNumber(s.deathsAverted) + '</td>';
+        rows += '<td style="text-align:right">$' + formatNumber(s.netBenefit) + '</td>';
+        rows += '<td style="text-align:right">' + s.bcRatio.toFixed(2) + '</td>';
+        rows += '<td style="text-align:right">$' + s.costPerDALY.toFixed(2) + '</td>';
+        rows += '</tr>';
+    }
+    return '<table>' +
+        '<tr><th>Scenario</th><th>Total Cost</th><th>Total Benefit</th><th>Cases Averted</th><th>Deaths Averted</th><th>Net Benefit</th><th>B/C Ratio</th><th>Cost/DALY</th></tr>' +
+        rows + '</table>';
+}
+
+// Helper: build the economic breakdown table for a given scenario
+function buildEconBreakdownHTML(s) {
+    const emergencyTotal = s.yearlyData.benefits.emergencyWash.reduce((a, b) => a + b, 0) +
+        s.yearlyData.benefits.emergencyOCV.reduce((a, b) => a + b, 0) +
+        s.yearlyData.benefits.emergencyCM.reduce((a, b) => a + b, 0);
+    return '<table>' +
+        '<tr><th>Economic Indicator</th><th>Value (USD)</th></tr>' +
+        '<tr><td>Value of Lives Saved</td><td style="text-align:right">$' + formatNumber(s.yearlyData.benefits.choleraValueLife.reduce((a, b) => a + b, 0)) + '</td></tr>' +
+        '<tr><td>Productivity Restored</td><td style="text-align:right">$' + formatNumber(s.yearlyData.benefits.choleraProdTime.reduce((a, b) => a + b, 0)) + '</td></tr>' +
+        '<tr><td>Emergency Costs Avoided</td><td style="text-align:right">$' + formatNumber(emergencyTotal) + '</td></tr>' +
+        '<tr style="background:#f1f5f9;"><td><strong>Net Economic Benefit</strong></td><td style="text-align:right"><strong>$' + formatNumber(s.netBenefit) + '</strong></td></tr>' +
+        '</table>';
+}
+
+// Helper: capture all chart canvases as base64 images
+function captureCharts() {
+    const ids = ['comparisonChart', 'costChart', 'outcomeChart', 'benefitChart'];
+    const imgs = {};
+    for (const id of ids) {
+        const canvas = document.getElementById(id);
+        imgs[id] = (canvas && canvas.width > 0) ? canvas.toDataURL('image/png') : '';
+    }
+    return imgs;
+}
+
+// Print Report — shows all 4 scenarios with comparison
 function printResults() {
-    const printWindow = window.open('', '', 'height=600,width=800');
-    const scenario = allScenarios[currentScenario];
+    if (!allScenarios || !allScenarios.bau) {
+        alert('Please calculate the analysis first.');
+        return;
+    }
 
-    let html = '<html><head><title>Cholera Cost-Benefit Analysis</title>';
-    html += '<style>body { font-family: Arial, sans-serif; margin: 20px; }';
-    html += 'h1 { color: #1e3a8a; } h2 { color: #0891b2; margin-top: 20px; }';
-    html += 'table { width: 100%; border-collapse: collapse; margin: 10px 0; }';
-    html += 'th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }';
-    html += 'th { background: #1e3a8a; color: white; }';
+    const countryName = getCountryDisplayName();
+    const inputs = getInputValues();
+    const imgs = captureCharts();
+
+    const printWindow = window.open('', '', 'height=800,width=900');
+
+    let html = '<html><head><title>Cholera Investment Case – ' + countryName + '</title>';
+    html += '<style>';
+    html += 'body { font-family: Calibri, Arial, sans-serif; margin: 20px; line-height: 1.4; color: #1e293b; }';
+    html += 'h1 { color: #1e3a8a; font-size: 20pt; border-bottom: 2px solid #1e3a8a; padding-bottom: 5px; }';
+    html += 'h2 { color: #0891b2; font-size: 14pt; margin-top: 18px; border-bottom: 1px solid #e2e8f0; }';
+    html += 'p { font-size: 10pt; margin: 4px 0; }';
+    html += 'table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9pt; }';
+    html += 'th, td { border: 1px solid #cbd5e1; padding: 4px 6px; }';
+    html += 'th { background: #1e3a8a; color: white; font-size: 8pt; }';
     html += 'td:first-child { text-align: left; }';
-    html += '.metric { margin: 15px 0; padding: 10px; background: #f0f9ff; border-left: 4px solid #0891b2; }';
-    html += '.metric-label { font-weight: bold; color: #1e3a8a; }';
-    html += '.metric-value { font-size: 1.2em; color: #0891b2; }';
+    html += '.highlight { padding: 10px; background: #f0f9ff; border-left: 4px solid #0891b2; margin: 10px 0; font-size: 10pt; }';
+    html += '.chart-img { width: 100%; max-width: 500px; display: block; margin: 10px auto; }';
+    html += '.footer { margin-top: 20px; font-size: 8pt; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 5px; }';
     html += '</style></head><body>';
-    html += '<h1>Global Cholera Cost-Benefit Analysis</h1>';
-    html += '<p>Generated: ' + new Date().toLocaleString() + '</p>';
-    html += '<h2>Scenario: ' + scenario.name + '</h2>';
 
-    html += '<div class="metric"><div class="metric-label">Total Investment Costs</div>';
-    html += '<div class="metric-value">$' + formatNumber(scenario.totalCosts) + 'K</div></div>';
+    html += '<h1>Cholera Investment Case: ' + countryName + '</h1>';
+    html += '<p><strong>Date:</strong> ' + new Date().toLocaleDateString() + ' &nbsp;|&nbsp; <strong>Analysis Period:</strong> ' + inputs.duration + ' years &nbsp;|&nbsp; <strong>Population:</strong> ' + formatNumber(inputs.population * 1000) + '</p>';
 
-    html += '<div class="metric"><div class="metric-label">Total Economic Benefits</div>';
-    html += '<div class="metric-value">$' + formatNumber(scenario.totalBenefits) + 'K</div></div>';
+    html += '<div class="highlight"><strong>Executive Summary:</strong> This report compares four cholera intervention strategies for <strong>' + countryName + '</strong> over a <strong>' + inputs.duration + '-year</strong> period. Targeted WASH and OCV investments show substantial returns compared to doing nothing.</div>';
 
-    html += '<div class="metric"><div class="metric-label">Net Benefit</div>';
-    html += '<div class="metric-value">$' + formatNumber(scenario.netBenefit) + 'K</div></div>';
+    // Section 1: Scenario Comparison
+    html += '<h2>1. Scenario Comparison</h2>';
+    html += buildComparisonTableHTML();
 
-    html += '<div class="metric"><div class="metric-label">Benefit-Cost Ratio</div>';
-    html += '<div class="metric-value">' + scenario.bcRatio.toFixed(2) + '</div></div>';
+    if (imgs.comparisonChart) {
+        html += '<img class="chart-img" src="' + imgs.comparisonChart + '" alt="Scenario Comparison" />';
+    }
 
-    // calculate baseline outcomes for print
-    const totalProjCases = scenario.yearlyData.outcomes.cases.reduce((a, b) => a + b, 0);
-    const totalProjDeaths = scenario.yearlyData.outcomes.deaths.reduce((a, b) => a + b, 0);
-    const baselineCases = totalProjCases + scenario.casesAverted;
-    const baselineDeaths = totalProjDeaths + scenario.deathsAverted;
-
-    html += '<h2>Health Outcomes</h2>';
-    html += '<table><tr><th>Metric</th><th>Value</th></tr>';
-    html += '<tr><td>Baseline Cases</td><td>' + formatNumber(baselineCases) + '</td></tr>';
-    html += '<tr><td>Cases Averted</td><td>' + formatNumber(scenario.casesAverted) + '</td></tr>';
-    html += '<tr><td>Baseline Deaths</td><td>' + formatNumber(baselineDeaths) + '</td></tr>';
-    html += '<tr><td>Deaths Averted</td><td>' + formatNumber(scenario.deathsAverted) + '</td></tr>';
-    html += '<tr><td>Cost per DALY</td><td>$' + scenario.costPerDALY.toFixed(2) + '</td></tr></table>';
-
-    html += '<h2>Yearly Projection</h2>';
-    html += '<table><tr><th>Year</th><th>Cases</th><th>Deaths</th><th>Annual Cost (USD K)</th></tr>';
-    for (let i = 0; i < scenario.years.length; i++) {
-        html += '<tr><td>' + scenario.years[i] + '</td>';
-        html += '<td>' + scenario.yearlyData.outcomes.cases[i].toFixed(0) + '</td>';
-        html += '<td>' + scenario.yearlyData.outcomes.deaths[i].toFixed(0) + '</td>';
-        html += '<td>' + scenario.yearlyData.costs.total[i].toFixed(0) + '</td></tr>';
+    // Section 2: Health Outcomes across all scenarios
+    html += '<h2>2. Projected Health Outcomes</h2>';
+    html += '<table><tr><th>Scenario</th><th>Total Cases</th><th>Total Deaths</th><th>Cases Averted</th><th>Deaths Averted</th></tr>';
+    for (const [key, s] of Object.entries(allScenarios)) {
+        const totalCases = s.yearlyData.outcomes.cases.reduce((a, b) => a + b, 0);
+        const totalDeaths = s.yearlyData.outcomes.deaths.reduce((a, b) => a + b, 0);
+        html += '<tr><td>' + s.name + '</td>';
+        html += '<td style="text-align:right">' + formatNumber(totalCases) + '</td>';
+        html += '<td style="text-align:right">' + formatNumber(totalDeaths) + '</td>';
+        html += '<td style="text-align:right">' + formatNumber(s.casesAverted) + '</td>';
+        html += '<td style="text-align:right">' + formatNumber(s.deathsAverted) + '</td></tr>';
     }
     html += '</table>';
-    html += '<p style="margin-top: 20px; font-size: 0.9em; color: #666;"><em>Global Cholera Cost Calculator</em></p>';
+
+    if (imgs.outcomeChart) {
+        html += '<img class="chart-img" src="' + imgs.outcomeChart + '" alt="Health Outcomes" />';
+    }
+
+    // Section 3: Cost breakdown
+    html += '<h2>3. Cost Breakdown</h2>';
+    if (imgs.costChart) {
+        html += '<img class="chart-img" src="' + imgs.costChart + '" alt="Cost Breakdown" />';
+    }
+
+    // Section 4: Economic benefits for each intervention scenario
+    html += '<h2>4. Economic Return by Scenario</h2>';
+    const interventionKeys = ['wash', 'ocv', 'combined'];
+    for (const key of interventionKeys) {
+        const s = allScenarios[key];
+        if (!s) continue;
+        html += '<h3 style="color:#0f172a; font-size: 11pt; margin-top: 10px;">' + s.name + ' (B/C Ratio: ' + s.bcRatio.toFixed(2) + ')</h3>';
+        html += buildEconBreakdownHTML(s);
+    }
+
+    if (imgs.benefitChart) {
+        html += '<img class="chart-img" src="' + imgs.benefitChart + '" alt="Benefits" />';
+    }
+
+    html += '<div class="footer">Generated by the Global Cholera Cost Calculator &bull; washways1@gmail.com</div>';
     html += '</body></html>';
 
     printWindow.document.write(html);
@@ -178,122 +252,148 @@ function printResults() {
     setTimeout(() => printWindow.print(), 250);
 }
 
-// Export to Word
+// Export to Word — generates a .doc file with embedded charts and full comparison
 function exportToWord() {
-    const scenario = allScenarios[currentScenario];
-    if (!scenario) {
+    if (!allScenarios || !allScenarios.bau) {
         alert("Please calculate the analysis first.");
         return;
     }
 
-    // Capture charts as base64 images
-    const comparisonChartCanvas = document.getElementById('comparisonChart');
-    const outcomeChartCanvas = document.getElementById('outcomeChart');
-    const costChartCanvas = document.getElementById('costChart');
-
-    // Scale charts slightly if needed, but defaults toDataURL is fine
-    const comparisonImg = comparisonChartCanvas ? comparisonChartCanvas.toDataURL('image/png') : '';
-    const outcomeImg = outcomeChartCanvas ? outcomeChartCanvas.toDataURL('image/png') : '';
-    const costImg = costChartCanvas ? costChartCanvas.toDataURL('image/png') : '';
-
     const inputs = getInputValues();
-    const countryName = currentCountry && currentCountry.name && currentCountry.name !== 'Global' ? currentCountry.name : inputs.countryCode;
+    const countryName = getCountryDisplayName();
     const dateStr = new Date().toLocaleDateString();
+    const imgs = captureCharts();
 
-    let comparisonTableRows = '';
+    // Build comparison rows
+    let comparisonRows = '';
     for (const [key, s] of Object.entries(allScenarios)) {
-        comparisonTableRows += `
-            <tr>
-                <td><strong>${s.name}</strong></td>
-                <td>$${formatNumber(s.totalCosts)}</td>
-                <td>${formatNumber(s.casesAverted)}</td>
-                <td>${formatNumber(s.deathsAverted)}</td>
-                <td>$${formatNumber(s.netBenefit)}</td>
-                <td>${s.bcRatio.toFixed(2)}</td>
-            </tr>
-        `;
+        comparisonRows += `<tr>
+            <td>${s.name}</td>
+            <td style="text-align:right">$${formatNumber(s.totalCosts)}</td>
+            <td style="text-align:right">$${formatNumber(s.totalBenefits)}</td>
+            <td style="text-align:right">${formatNumber(s.casesAverted)}</td>
+            <td style="text-align:right">${formatNumber(s.deathsAverted)}</td>
+            <td style="text-align:right">$${formatNumber(s.netBenefit)}</td>
+            <td style="text-align:right">${s.bcRatio.toFixed(2)}</td>
+            <td style="text-align:right">$${s.costPerDALY.toFixed(2)}</td>
+        </tr>`;
     }
 
-    // Create HTML content with Word XML namespaces
-    let html = `
-    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    // Build health outcomes rows for all scenarios
+    let healthRows = '';
+    for (const [key, s] of Object.entries(allScenarios)) {
+        const tc = s.yearlyData.outcomes.cases.reduce((a, b) => a + b, 0);
+        const td = s.yearlyData.outcomes.deaths.reduce((a, b) => a + b, 0);
+        healthRows += `<tr>
+            <td>${s.name}</td>
+            <td style="text-align:right">${formatNumber(tc)}</td>
+            <td style="text-align:right">${formatNumber(td)}</td>
+            <td style="text-align:right">${formatNumber(s.casesAverted)}</td>
+            <td style="text-align:right">${formatNumber(s.deathsAverted)}</td>
+        </tr>`;
+    }
+
+    // Build economic breakdown for each intervention
+    let econSections = '';
+    const interventionKeys = ['wash', 'ocv', 'combined'];
+    for (const key of interventionKeys) {
+        const s = allScenarios[key];
+        if (!s) continue;
+        const emergencyTotal = s.yearlyData.benefits.emergencyWash.reduce((a, b) => a + b, 0) +
+            s.yearlyData.benefits.emergencyOCV.reduce((a, b) => a + b, 0) +
+            s.yearlyData.benefits.emergencyCM.reduce((a, b) => a + b, 0);
+        econSections += `
+        <h3>${s.name} (B/C Ratio: ${s.bcRatio.toFixed(2)})</h3>
+        <table>
+            <tr><th>Economic Indicator</th><th>Value (USD)</th></tr>
+            <tr><td>Value of Lives Saved</td><td style="text-align:right">$${formatNumber(s.yearlyData.benefits.choleraValueLife.reduce((a, b) => a + b, 0))}</td></tr>
+            <tr><td>Productivity Restored</td><td style="text-align:right">$${formatNumber(s.yearlyData.benefits.choleraProdTime.reduce((a, b) => a + b, 0))}</td></tr>
+            <tr><td>Emergency Costs Avoided</td><td style="text-align:right">$${formatNumber(emergencyTotal)}</td></tr>
+            <tr style="background:#f1f5f9;"><td><strong>Net Economic Benefit</strong></td><td style="text-align:right"><strong>$${formatNumber(s.netBenefit)}</strong></td></tr>
+        </table>`;
+    }
+
+    // Build the best recommendation
+    let bestScenario = allScenarios.combined;
+    let bestName = 'WASH + OCV';
+    for (const [key, s] of Object.entries(allScenarios)) {
+        if (key === 'bau') continue;
+        if (s.bcRatio > bestScenario.bcRatio) {
+            bestScenario = s;
+            bestName = s.name;
+        }
+    }
+
+    let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head>
         <meta charset="utf-8">
-        <title>Cholera Investment Case - ${countryName}</title>
+        <title>Cholera Investment Case – ${countryName} – ${dateStr}</title>
         <style>
-            body { font-family: 'Calibri', 'Arial', sans-serif; max-width: 800px; margin: 0 auto; line-height: 1.4; }
-            h1 { color: #1e3a8a; text-align: center; font-size: 20pt; border-bottom: 2px solid #1e3a8a; padding-bottom: 5px; margin-bottom: 10px; }
-            h2 { color: #0891b2; font-size: 14pt; margin-top: 15px; margin-bottom: 5px; border-bottom: 1px solid #e2e8f0; }
-            h3 { color: #0f172a; font-size: 12pt; margin-top: 10px; margin-bottom: 5px; }
-            p { font-size: 10pt; margin: 5px 0; color: #334155; }
-            table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9pt; }
-            th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: left; }
-            th { background-color: #f1f5f9; font-weight: bold; color: #1e293b; }
-            .highlight { background-color: #f8fafc; padding: 10px; border-left: 4px solid #0284c7; margin: 10px 0; font-size: 10pt; color: #0f172a; }
-            .metric-box { text-align: center; border: 1px solid #e2e8f0; padding: 5px; background: #f8fafc; margin: 5px 0; }
-            .metric-value { font-size: 12pt; font-weight: bold; color: #1e40af; }
-            .metric-title { font-size: 9pt; color: #475569; }
-            .chart-img { width: 100%; max-width: 500px; display: block; margin: 10px auto; border: 1px solid #e2e8f0; }
-            .footer { margin-top: 20px; font-size: 8pt; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 5px; }
+            body { font-family: 'Calibri', 'Arial', sans-serif; max-width: 800px; margin: 0 auto; line-height: 1.4; color: #1e293b; }
+            h1 { color: #1e3a8a; text-align: center; font-size: 20pt; border-bottom: 2px solid #1e3a8a; padding-bottom: 5px; margin-bottom: 5px; }
+            h2 { color: #0891b2; font-size: 13pt; margin-top: 14px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; }
+            h3 { color: #0f172a; font-size: 11pt; margin-top: 8px; margin-bottom: 3px; }
+            p { font-size: 10pt; margin: 4px 0; }
+            table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 8pt; }
+            th, td { border: 1px solid #cbd5e1; padding: 3px 5px; }
+            th { background-color: #f1f5f9; font-weight: bold; color: #1e293b; font-size: 8pt; }
+            .highlight { background-color: #f0f9ff; padding: 8px; border-left: 4px solid #0284c7; margin: 8px 0; font-size: 10pt; }
+            .chart-img { width: 100%; max-width: 480px; display: block; margin: 8px auto; }
+            .footer { margin-top: 15px; font-size: 8pt; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 4px; }
         </style>
     </head>
     <body>
         <h1>Investment Case for Cholera Intervention: ${countryName}</h1>
-        <p style="text-align:center; color:#64748b; font-weight: bold;">Date: ${dateStr}</p>
-        
+        <p style="text-align:center; color:#64748b;"><strong>Date:</strong> ${dateStr} &nbsp;|&nbsp; <strong>Analysis Period:</strong> ${inputs.duration} years &nbsp;|&nbsp; <strong>Population:</strong> ${formatNumber(inputs.population * 1000)}</p>
+
         <div class="highlight">
-            <strong>Executive Summary:</strong> Based on epidemiological modeling for <strong>${countryName}</strong> over a <strong>${inputs.duration}-year</strong> period with a target population of ${formatNumber(inputs.population * 1000)}, investing in cholera prevention yields a substantial return. This document compares Business as Usual (BAU) against targeted WASH and OCV interventions.
+            <strong>Executive Summary:</strong> This investment case evaluates four cholera intervention strategies for <strong>${countryName}</strong> over <strong>${inputs.duration} years</strong>. Among the options analysed, <strong>${bestName}</strong> achieves the highest B/C Ratio of <strong>${bestScenario.bcRatio.toFixed(2)}</strong>, generating <strong>$${formatNumber(bestScenario.netBenefit)}</strong> in net economic benefit from an investment of <strong>$${formatNumber(bestScenario.totalCosts)}</strong>.
         </div>
 
-        <h2>1. Intervention Comparison</h2>
-        <p>The following table and chart provide a comprehensive comparison of the costs and benefits associated with different intervention strategies.</p>
-        
-        <table>
-            <tr>
-                <th>Scenario</th>
-                <th>Total Cost</th>
-                <th>Cases Averted</th>
-                <th>Deaths Averted</th>
-                <th>Net Benefit</th>
-                <th>B/C Ratio</th>
-            </tr>
-            ${comparisonTableRows}
-        </table>
-
-        ${comparisonImg ? '<img class="chart-img" style="max-width: 450px;" src="' + comparisonImg + '" alt="Comparison Chart" />' : ''}
-
-        <h2>2. Deep Dive: ${scenario.name}</h2>
-        <p>Focusing on the <strong>${scenario.name}</strong> strategy, the required investment of <strong>$${formatNumber(scenario.totalCosts)}</strong> generates <strong>$${formatNumber(scenario.totalBenefits)}</strong> in economic value.</p>
-        
-        <table>
-            <tr><th>Metric</th><th>Business as Usual</th><th>${scenario.name} Projection</th></tr>
-            <tr><td>Total Cholera Cases</td><td>${formatNumber(allScenarios.bau.yearlyData.outcomes.cases.reduce((a, b) => a + b, 0))}</td><td>${formatNumber(scenario.yearlyData.outcomes.cases.reduce((a, b) => a + b, 0))}</td></tr>
-            <tr><td>Total Deaths</td><td>${formatNumber(allScenarios.bau.yearlyData.outcomes.deaths.reduce((a, b) => a + b, 0))}</td><td>${formatNumber(scenario.yearlyData.outcomes.deaths.reduce((a, b) => a + b, 0))}</td></tr>
-        </table>
-        
-        <h3>Projected Health Outcomes Over ${inputs.duration} Years</h3>
-        ${outcomeImg ? '<img class="chart-img" style="max-width: 450px;" src="' + outcomeImg + '" alt="Outcomes Chart" />' : ''}
-
-        <h2>3. Economic Return and Justification</h2>
-        <p>Investing in ${scenario.name} produces a Benefit-Cost Ratio of <strong>${scenario.bcRatio.toFixed(2)}</strong>. This intervention operates at a highly effective cost per Disability-Adjusted Life Year (DALY) averted of <strong>$${scenario.costPerDALY.toFixed(2)}</strong>.</p>
+        <h2>1. Scenario Comparison</h2>
+        <p>Four strategies are compared: Business as Usual (no intervention), WASH infrastructure alone, Oral Cholera Vaccination alone, and a combined WASH + OCV approach.</p>
 
         <table>
-            <tr><th>Economic Indicator (${scenario.name})</th><th>Estimated Value (USD)</th></tr>
-            <tr><td>Value of Lives Saved (Mortality)</td><td>$${formatNumber(scenario.yearlyData.benefits.choleraValueLife.reduce((a, b) => a + b, 0))}</td></tr>
-            <tr><td>Productivity Restored (Morbidity)</td><td>$${formatNumber(scenario.yearlyData.benefits.choleraProdTime.reduce((a, b) => a + b, 0))}</td></tr>
-            <tr><td>Emergency Costs Avoided</td><td>$${formatNumber(scenario.yearlyData.benefits.emergencyWash.reduce((a, b) => a + b, 0) + scenario.yearlyData.benefits.emergencyOCV.reduce((a, b) => a + b, 0) + scenario.yearlyData.benefits.emergencyCM.reduce((a, b) => a + b, 0))}</td></tr>
-            <tr style="background:#f1f5f9;"><td><strong>Net Economic Benefit</strong></td><td><strong>$${formatNumber(scenario.netBenefit)}</strong></td></tr>
+            <tr><th>Scenario</th><th>Total Cost</th><th>Total Benefit</th><th>Cases Averted</th><th>Deaths Averted</th><th>Net Benefit</th><th>B/C Ratio</th><th>Cost/DALY</th></tr>
+            ${comparisonRows}
         </table>
+
+        ${imgs.comparisonChart ? '<img class="chart-img" src="' + imgs.comparisonChart + '" alt="Scenario Comparison Chart" />' : ''}
+
+        <h2>2. Health Outcomes Across All Scenarios</h2>
+        <p>Projected cholera cases and deaths for ${countryName} under each strategy over the ${inputs.duration}-year period:</p>
+
+        <table>
+            <tr><th>Scenario</th><th>Total Cases</th><th>Total Deaths</th><th>Cases Averted</th><th>Deaths Averted</th></tr>
+            ${healthRows}
+        </table>
+
+        ${imgs.outcomeChart ? '<img class="chart-img" src="' + imgs.outcomeChart + '" alt="Health Outcomes Chart" />' : ''}
+
+        <h2>3. Investment Costs</h2>
+        <p>Breakdown of costs for infrastructure, operations, and vaccination delivery across each scenario in ${countryName}.</p>
+
+        ${imgs.costChart ? '<img class="chart-img" src="' + imgs.costChart + '" alt="Cost Breakdown Chart" />' : ''}
+
+        <h2>4. Economic Return by Intervention</h2>
+        <p>Detailed economic benefits for each active intervention scenario, including lives saved, productivity restored, and emergency costs avoided.</p>
+
+        ${econSections}
+
+        ${imgs.benefitChart ? '<img class="chart-img" src="' + imgs.benefitChart + '" alt="Benefits Chart" />' : ''}
+
+        <div class="highlight">
+            <strong>Recommendation:</strong> Investing in cholera prevention in ${countryName} is strongly justified. The <strong>${bestName}</strong> strategy delivers the highest return, averting <strong>${formatNumber(bestScenario.casesAverted)}</strong> cases and <strong>${formatNumber(bestScenario.deathsAverted)}</strong> deaths with every $1 invested returning <strong>$${bestScenario.bcRatio.toFixed(2)}</strong> in economic benefit.
+        </div>
 
         <div class="footer">
-            Generated by the Global Cholera Cost Calculator • Methodological framework incorporates WHO/WB econometric standards.
+            Generated by the Global Cholera Cost Calculator &bull; Contact: washways1@gmail.com
         </div>
     </body>
-    </html>
-    `;
+    </html>`;
 
-    // Package the HTML into a word Blob and trigger download
-    const blob = new Blob(['\\ufeff', html], {
+    // Package the HTML into a Word blob – use proper BOM for encoding
+    const blob = new Blob(['\ufeff', html], {
         type: 'application/msword'
     });
 
