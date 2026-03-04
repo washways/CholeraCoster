@@ -378,19 +378,23 @@ async function fetchCountryData(country = 'MWI', year = null) {
         }
     }
 
-    // Try proxies in order: Cloudflare → localhost → public CORS proxies
-    async function fetchWithProxy(url) {
-        // 1. Cloudflare Worker proxy
+    // Try direct WB API first (supports CORS), then proxies as fallback
+    async function fetchIndicator(url) {
+        // 1. Direct WB API (no proxy needed — WB supports CORS for format=json)
+        const directData = await fetchWithTimeout(url);
+        if (directData) return directData;
+
+        // 2. Cloudflare Worker proxy
         if (typeof CLOUDFLARE_WB_PROXY === 'string' && CLOUDFLARE_WB_PROXY.trim().length > 0) {
             const cfUrl = CLOUDFLARE_WB_PROXY + '/' + url.replace('https://api.worldbank.org/v2/', '');
             const data = await fetchWithTimeout(cfUrl);
             if (data) return data;
         }
-        // 2. Local Flask proxy
+        // 3. Local Flask proxy
         const localProxy = `http://localhost:5001/wb${url.replace('https://api.worldbank.org/v2', '')}`;
         const localData = await fetchWithTimeout(localProxy, 3000);
         if (localData) return localData;
-        // 3. Public CORS proxies
+        // 4. Public CORS proxies
         const proxies = [
             (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
             (u) => `https://api.codetabs.com/v1/proxy?url=${encodeURIComponent(u)}`
@@ -407,7 +411,7 @@ async function fetchCountryData(country = 'MWI', year = null) {
     if (year) {
         dateParam = `&date=${year - 3}:${year}`;
     } else {
-        dateParam = '&date=2019:2025&MRV=1';
+        dateParam = '&date=2019:2025';
     }
 
     // --- Fetch ALL indicators in PARALLEL ---
@@ -415,7 +419,7 @@ async function fetchCountryData(country = 'MWI', year = null) {
     const entries = Object.entries(codes);
     const promises = entries.map(([key, code]) => {
         const url = `https://api.worldbank.org/v2/country/${country}/indicator/${code}?format=json&per_page=10${dateParam}`;
-        return fetchWithProxy(url)
+        return fetchIndicator(url)
             .then(data => ({ key, code, data }))
             .catch(err => ({ key, code, data: null }));
     });
@@ -424,6 +428,7 @@ async function fetchCountryData(country = 'MWI', year = null) {
     console.timeEnd('WB API fetch');
 
     // Parse results — pick the most recent non-null value from each response
+    let successCount = 0;
     for (const { key, code, data } of results) {
         try {
             if (!data || !Array.isArray(data) || !data[1] || !Array.isArray(data[1])) continue;
@@ -438,6 +443,7 @@ async function fetchCountryData(country = 'MWI', year = null) {
                         result[key] = parseFloat(val);
                     }
                     result.success = true;
+                    successCount++;
                     console.info(`✓ ${code} = ${val} (year ${record.date})`);
                     break; // take the first (most recent) non-null value
                 }
@@ -450,10 +456,15 @@ async function fetchCountryData(country = 'MWI', year = null) {
     // Calculate proxy indicators from WB data
     result.proxies = calculateProxyIndicators(result);
 
-    // Store in both caches
-    result._ts = Date.now();
-    _apiCache[cacheKey] = result;
-    try { localStorage.setItem('wb_cache_' + cacheKey, JSON.stringify(result)); } catch (e) { }
+    // Only cache if we got a reasonable number of indicators (avoid caching bad partial data)
+    if (successCount >= 5 && result.gdpPerCapita !== null) {
+        result._ts = Date.now();
+        _apiCache[cacheKey] = result;
+        try { localStorage.setItem('wb_cache_' + cacheKey, JSON.stringify(result)); } catch (e) { }
+        console.info(`Cached ${successCount} indicators for ${cacheKey}`);
+    } else {
+        console.warn(`Only ${successCount} indicators succeeded (GDP: ${result.gdpPerCapita}) — not caching`);
+    }
 
     return result;
 }
