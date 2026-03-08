@@ -1,35 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
-
-<head>
+<html lang="en"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Cholera Cost Calculator</title>
-    <meta name="description"
-        content="Model and compare cholera intervention strategies including WASH infrastructure, OCV vaccination, and combined approaches. Generate investment cases with World Bank data.">
+    <title>Cholera Prevention Cost-Benefit Calculator</title>
+    <meta name="description" content="Analyze cholera intervention costs and benefits globally">
 
     <!-- Open Graph / Social Media Preview -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://washways.org/CholeraCoster/">
-    <meta property="og:title" content="Global Cholera Cost Calculator">
-    <meta property="og:description"
-        content="Model and compare cholera intervention strategies including WASH infrastructure, OCV vaccination, and combined approaches. Generate investment cases with World Bank data.">
-    <meta property="og:image" content="https://washways.org/CholeraCoster/social-preview.png">
+    <meta property="og:title" content="Cholera Prevention Cost-Benefit Calculator">
+    <meta property="og:description" content="Analyze cholera intervention costs and benefits globally">
+    <meta property="og:image" content="https://washways.org/assets/images/choleracoster-preview.jpg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Global Cholera Cost Calculator">
-    <meta name="twitter:description"
-        content="Model and compare cholera intervention strategies including WASH infrastructure, OCV vaccination, and combined approaches.">
-    <meta name="twitter:image" content="https://washways.org/CholeraCoster/social-preview.png">
+    <meta name="twitter:title" content="Cholera Prevention Cost-Benefit Calculator">
+    <meta name="twitter:description" content="Analyze cholera intervention costs and benefits globally">
+    <meta name="twitter:image" content="https://washways.org/assets/images/choleracoster-preview.jpg">
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css" rel="stylesheet">
-    <link rel="icon" type="image/x-icon"
-        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💙</text></svg>">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;text y=%22.9em%22 font-size=%2290%22&gt;💙&lt;/text&gt;&lt;/svg&gt;">
     <style>
         :root {
             --primary-color: #1e3a8a;
@@ -510,7 +504,12 @@
             outline: 2px solid rgba(255, 255, 255, 0.5);
         }
     </style>
-</head>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-64GCB9QDB5"></script><script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-64GCB9QDB5');
+</script></head>
 
 <body>
     <!-- Splash Screen -->
@@ -523,8 +522,7 @@
                 <li><strong>Select a country</strong> from the dropdown at the top (defaults to Malawi)</li>
                 <li><strong>Wait for data to load</strong> — you'll see a loading spinner while fetching World Bank API
                     data</li>
-                <li><strong>Green-highlighted fields</strong> <span class="splash-badge badge-calc"
-                        style="background:#dcfce7; color:#15803d; border:1px solid #22c55e;">Auto</span> are
+                <li><strong>Green-highlighted fields</strong> <span class="splash-badge badge-calc" style="background:#dcfce7; color:#15803d; border:1px solid #22c55e;">Auto</span> are
                     automatically
                     calculated or filled from World Bank data</li>
                 <li><strong>Enter your parameters</strong> in the left panel (costs, targets, health assumptions)</li>
@@ -552,19 +550,16 @@
     <div class="header">
         <div class="container">
             <h1><i class="fas fa-heartbeat"></i> <span id="headerCountry">Global</span> Cholera Cost Calculator</h1>
-            <p>Comprehensive Investment Analysis Tool for Cholera Prevention & Control</p>
+            <p>Comprehensive Investment Analysis Tool for Cholera Prevention &amp; Control</p>
 
             <div class="mt-3" style="font-size: 0.95rem;">
-                <a href="https://github.com/washways/CholeraCoster" target="_blank"
-                    class="text-white text-decoration-none me-4 opacity-75 hover-opacity-100">
+                <a href="https://github.com/washways/CholeraCoster" target="_blank" class="text-white text-decoration-none me-4 opacity-75 hover-opacity-100">
                     <i class="fab fa-github"></i> GitHub Repository
                 </a>
-                <a href="https://github.com/washways/CholeraCoster/blob/master/README.md" target="_blank"
-                    class="text-white text-decoration-none me-4 opacity-75 hover-opacity-100">
+                <a href="https://github.com/washways/CholeraCoster/blob/master/README.md" target="_blank" class="text-white text-decoration-none me-4 opacity-75 hover-opacity-100">
                     <i class="fas fa-book"></i> User Guide (README)
                 </a>
-                <a href="https://github.com/washways/CholeraCoster/blob/master/README.md#Key-Calculations"
-                    target="_blank" class="text-white text-decoration-none opacity-75 hover-opacity-100">
+                <a href="https://github.com/washways/CholeraCoster/blob/master/README.md#Key-Calculations" target="_blank" class="text-white text-decoration-none opacity-75 hover-opacity-100">
                     <i class="fas fa-calculator"></i> Methodology
                 </a>
             </div>
@@ -666,102 +661,76 @@
                                 Unable to fetch data from the World Bank API – defaults are being used. You can enter
                                 values manually.
                             </div>
-                            <div id="apiStats" class="mb-4"
-                                style="background: #f8fafc; border-left: 4px solid #0891b2; padding: 15px; border-radius: 6px;">
+                            <div id="apiStats" class="mb-4" style="background: #f8fafc; border-left: 4px solid #0891b2; padding: 15px; border-radius: 6px;">
                                 <h6 style="color: #0891b2; margin-bottom: 12px;"><i class="fas fa-database"></i> World
                                     Bank Profile (Data Year: <span id="apiYear">-</span>)</h6>
 
                                 <!-- Demographics -->
                                 <div style="margin-bottom: 12px;">
                                     <small style="font-weight: 600; color: #1e3a8a;">Demographics</small>
-                                    <ul class="list-unstyled small"
-                                        style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
+                                    <ul class="list-unstyled small" style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
                                         <li><strong>Population:</strong> <span id="apiPop">-</span></li>
-                                        <li><strong>Urbanization:</strong> <span id="apiUrban">-</span> <small
-                                                style="color: #666;">(% urban)</small></li>
+                                        <li><strong>Urbanization:</strong> <span id="apiUrban">-</span> <small style="color: #666;">(% urban)</small></li>
                                     </ul>
                                 </div>
 
                                 <!-- Economic -->
                                 <div style="margin-bottom: 12px;">
                                     <small style="font-weight: 600; color: #1e3a8a;">Economic Indicators</small>
-                                    <ul class="list-unstyled small"
-                                        style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
+                                    <ul class="list-unstyled small" style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
                                         <li><strong>GDP per capita:</strong> <span id="apiGDP">-</span></li>
-                                        <li><strong>GDP growth:</strong> <span id="apiGrowth">-</span> <small
-                                                style="color: #666;">(annual %)</small></li>
-                                        <li><strong>Unemployment:</strong> <span id="apiUnemployment">-</span> <small
-                                                style="color: #666;">(estimated %)</small></li>
-                                        <li><strong>Poverty rate:</strong> <span id="apiPoverty">-</span> <small
-                                                style="color: #666;">(estimated from GDP + literacy)</small></li>
+                                        <li><strong>GDP growth:</strong> <span id="apiGrowth">-</span> <small style="color: #666;">(annual %)</small></li>
+                                        <li><strong>Unemployment:</strong> <span id="apiUnemployment">-</span> <small style="color: #666;">(estimated %)</small></li>
+                                        <li><strong>Poverty rate:</strong> <span id="apiPoverty">-</span> <small style="color: #666;">(estimated from GDP + literacy)</small></li>
                                     </ul>
                                 </div>
 
                                 <!-- WASH & Health -->
                                 <div style="margin-bottom: 12px;">
-                                    <small style="font-weight: 600; color: #1e3a8a;">WASH & Water Access</small>
-                                    <ul class="list-unstyled small"
-                                        style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
-                                        <li><strong>Safe water supply:</strong> <span id="apiWater">-</span> <small
-                                                style="color: #666;">(%)</small></li>
+                                    <small style="font-weight: 600; color: #1e3a8a;">WASH &amp; Water Access</small>
+                                    <ul class="list-unstyled small" style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
+                                        <li><strong>Safe water supply:</strong> <span id="apiWater">-</span> <small style="color: #666;">(%)</small></li>
                                         <li><strong>Safely managed sanitation:</strong> <span id="apiSafe">-</span>
                                             <small style="color: #666;">(%)</small>
                                         </li>
-                                        <li><strong>Open defecation:</strong> <span id="apiOpen">-</span> <small
-                                                style="color: #666;">(%)</small></li>
+                                        <li><strong>Open defecation:</strong> <span id="apiOpen">-</span> <small style="color: #666;">(%)</small></li>
                                     </ul>
                                 </div>
 
                                 <!-- Health Metrics -->
                                 <div style="margin-bottom: 12px;">
-                                    <small style="font-weight: 600; color: #1e3a8a;">Health & Mortality</small>
-                                    <ul class="list-unstyled small"
-                                        style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
-                                        <li><strong>Life expectancy:</strong> <span id="apiLife">-</span> <small
-                                                style="color: #666;">(years)</small></li>
-                                        <li><strong>Infant mortality:</strong> <span id="apiInfant">-</span> <small
-                                                style="color: #666;">(per 1,000)</small></li>
-                                        <li><strong>Under-5 mortality:</strong> <span id="apiUnderFive">-</span> <small
-                                                style="color: #666;">(per 1,000)</small></li>
-                                        <li><strong>Child stunting:</strong> <span id="apiStunt">-</span> <small
-                                                style="color: #666;">(%)</small></li>
-                                        <li><strong>Health spending:</strong> <span id="apiHealth">-</span> <small
-                                                style="color: #666;">(% GDP)</small></li>
+                                    <small style="font-weight: 600; color: #1e3a8a;">Health &amp; Mortality</small>
+                                    <ul class="list-unstyled small" style="margin: 6px 0; padding-left: 12px; font-size: 0.9rem;">
+                                        <li><strong>Life expectancy:</strong> <span id="apiLife">-</span> <small style="color: #666;">(years)</small></li>
+                                        <li><strong>Infant mortality:</strong> <span id="apiInfant">-</span> <small style="color: #666;">(per 1,000)</small></li>
+                                        <li><strong>Under-5 mortality:</strong> <span id="apiUnderFive">-</span> <small style="color: #666;">(per 1,000)</small></li>
+                                        <li><strong>Child stunting:</strong> <span id="apiStunt">-</span> <small style="color: #666;">(%)</small></li>
+                                        <li><strong>Health spending:</strong> <span id="apiHealth">-</span> <small style="color: #666;">(% GDP)</small></li>
                                     </ul>
                                 </div>
 
                                 <!-- Proxy Indicators (Estimated) -->
-                                <div
-                                    style="background: white; padding: 10px; border-radius: 4px; border-left: 3px solid #10b981;">
+                                <div style="background: white; padding: 10px; border-radius: 4px; border-left: 3px solid #10b981;">
                                     <small style="font-weight: 600; color: #15803d;"><i class="fas fa-calculator"></i>
                                         Estimated Indicators (from WB data)</small>
-                                    <ul class="list-unstyled small"
-                                        style="margin: 6px 0; padding-left: 12px; font-size: 0.85rem;">
-                                        <li
-                                            title="Based on health spending (% GDP) × GDP per capita = absolute per-capita spend. Low-income countries spending <$100/person are classified as low capacity.">
-                                            <strong>Health system capacity:</strong> <span
-                                                id="apiHealthCapacity">-</span>
+                                    <ul class="list-unstyled small" style="margin: 6px 0; padding-left: 12px; font-size: 0.85rem;">
+                                        <li title="Based on health spending (% GDP) × GDP per capita = absolute per-capita spend. Low-income countries spending &lt;$100/person are classified as low capacity.">
+                                            <strong>Health system capacity:</strong> <span id="apiHealthCapacity">-</span>
                                         </li>
-                                        <li
-                                            title="Under-5 mortality rate is a widely used proxy for overall national development. Higher rates indicate weaker infrastructure, healthcare, and nutrition.">
+                                        <li title="Under-5 mortality rate is a widely used proxy for overall national development. Higher rates indicate weaker infrastructure, healthcare, and nutrition.">
                                             <strong>Development level:</strong> <span id="apiDevelopment">-</span>
                                         </li>
-                                        <li
-                                            title="Child stunting (% under 5 with low height-for-age) indicates chronic undernutrition and poor WASH conditions. >30% = severe, 15-30% = moderate.">
+                                        <li title="Child stunting (% under 5 with low height-for-age) indicates chronic undernutrition and poor WASH conditions. &gt;30% = severe, 15-30% = moderate.">
                                             <strong>Nutrition status:</strong> <span id="apiNutrition">-</span>
                                         </li>
-                                        <li
-                                            title="Composite risk score from stunting rate and open defecation prevalence. Score = (stunting/30) + (openDefecation/50). >1.5 = high risk.">
+                                        <li title="Composite risk score from stunting rate and open defecation prevalence. Score = (stunting/30) + (openDefecation/50). &gt;1.5 = high risk.">
                                             <strong>Disease environment:</strong> <span id="apiDiseaseRisk">-</span>
                                         </li>
-                                        <li
-                                            title="Estimated from absolute health spending per capita and infant mortality rate. Formula: (healthSpend% × GDPpc) / (infantMortality + 1). Proxy for health worker availability.">
+                                        <li title="Estimated from absolute health spending per capita and infant mortality rate. Formula: (healthSpend% × GDPpc) / (infantMortality + 1). Proxy for health worker availability.">
                                             <strong>Health worker density:</strong> <span id="apiHealthWorkers">-</span>
                                         </li>
-                                        <li
-                                            title="Gini coefficient from World Bank (0 = perfect equality, 1 = maximum inequality). Values >0.4 indicate high inequality.">
-                                            <strong>Inequality (Gini):</strong> <span id="apiGini">-</span> <small
-                                                style="color: #666;">(0=equal, 1=unequal)</small>
+                                        <li title="Gini coefficient from World Bank (0 = perfect equality, 1 = maximum inequality). Values &gt;0.4 indicate high inequality.">
+                                            <strong>Inequality (Gini):</strong> <span id="apiGini">-</span> <small style="color: #666;">(0=equal, 1=unequal)</small>
                                         </li>
                                     </ul>
                                 </div>
@@ -773,8 +742,7 @@
                             <div class="mb-3">
                                 <label class="form-label"><i class="fas fa-users"></i> Hotspot Population (thousands)
                                     <span class="badge bg-success" id="apiPopBadge">API</span></label>
-                                <input type="number" class="form-control api-derived" id="populationInput" value="500"
-                                    min="1" max="100000">
+                                <input type="number" class="form-control api-derived" id="populationInput" value="500" min="1" max="100000">
                                 <small class="text-muted">Population at risk in cholera hotspots (auto-filled from World
                                     Bank)</small>
                             </div>
@@ -782,47 +750,41 @@
                             <div class="mb-3">
                                 <label class="form-label"><i class="fas fa-percent"></i> Annual Population Growth
                                     (%)</label>
-                                <input type="number" class="form-control" id="growthRateInput" value="2.8" min="0"
-                                    max="10" step="0.1">
+                                <input type="number" class="form-control" id="growthRateInput" value="2.8" min="0" max="10" step="0.1">
                             </div>
 
                             <!-- Timeline & Data Source -->
                             <div class="mb-3">
                                 <label class="form-label"><i class="fas fa-calendar"></i> Base Year</label>
-                                <input type="number" class="form-control" id="baseYearInput" value="2025" min="2020"
-                                    max="2030">
+                                <input type="number" class="form-control" id="baseYearInput" value="2025" min="2020" max="2030">
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label"><i class="fas fa-flag-checkered"></i> Roadmap Duration
                                     (years)</label>
-                                <input type="number" class="form-control" id="durationInput" value="10" min="1"
-                                    max="20">
+                                <input type="number" class="form-control" id="durationInput" value="10" min="1" max="20">
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label"><i class="fas fa-chart-line"></i> WASH Capital Ramp-Up
                                     (%)</label>
-                                <input type="number" class="form-control" id="washRampUpInput" value="60" min="10"
-                                    max="100" step="5">
+                                <input type="number" class="form-control" id="washRampUpInput" value="60" min="10" max="100" step="5">
                                 <small class="text-muted">Percentage of project duration until WASH infrastructure is
                                     fully built</small>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label"><i class="fas fa-tools"></i> WASH O&M Rate
+                                <label class="form-label"><i class="fas fa-tools"></i> WASH O&amp;M Rate
                                     (%)</label>
-                                <input type="number" class="form-control" id="washOMRateInput" value="10" min="0"
-                                    max="50" step="1">
-                                <small class="text-muted">Operations & Maintenance cost as an annual % of total WASH
+                                <input type="number" class="form-control" id="washOMRateInput" value="10" min="0" max="50" step="1">
+                                <small class="text-muted">Operations &amp; Maintenance cost as an annual % of total WASH
                                     capital</small>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label"><i class="fas fa-chart-line"></i> OCV Campaign Ramp-Up
                                     (%)</label>
-                                <input type="number" class="form-control" id="ocvRampUpInput" value="50" min="10"
-                                    max="100" step="5">
+                                <input type="number" class="form-control" id="ocvRampUpInput" value="50" min="10" max="100" step="5">
                                 <small class="text-muted">Percentage of project duration to reach OCV vaccination
                                     target</small>
                             </div>
@@ -833,17 +795,16 @@
 
                             <div class="mb-3">
                                 <label class="form-label">Country Code</label>
-                                <input list="countryList" type="text" class="form-control" id="countryCodeInput"
-                                    value="MWI" maxlength="3" placeholder="e.g., MWI, KEN, UGA">
+                                <input list="countryList" type="text" class="form-control" id="countryCodeInput" value="MWI" maxlength="3" placeholder="e.g., MWI, KEN, UGA">
                                 <datalist id="countryList">
                                     <option value="MWI">
-                                    <option value="KEN">
-                                    <option value="UGA">
-                                    <option value="TZA">
-                                    <option value="ZMB">
-                                    <option value="ZWE">
-                                    <option value="RWA">
-                                </datalist>
+                                    </option><option value="KEN">
+                                    </option><option value="UGA">
+                                    </option><option value="TZA">
+                                    </option><option value="ZMB">
+                                    </option><option value="ZWE">
+                                    </option><option value="RWA">
+                                </option></datalist>
                                 <small class="text-muted">ISO 3-letter country code for World Bank API (start typing or
                                     pick)</small>
                             </div>
@@ -855,20 +816,17 @@
 
                             <div class="mb-3">
                                 <label class="form-label">Water Coverage Target (%)</label>
-                                <input type="number" class="form-control" id="waterTargetInput" value="85" min="0"
-                                    max="100">
+                                <input type="number" class="form-control" id="waterTargetInput" value="85" min="0" max="100">
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Sanitation Coverage Target (%)</label>
-                                <input type="number" class="form-control" id="sanitationTargetInput" value="80" min="0"
-                                    max="100">
+                                <input type="number" class="form-control" id="sanitationTargetInput" value="80" min="0" max="100">
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Hygiene Promotion Coverage Target (%)</label>
-                                <input type="number" class="form-control" id="hygieneTargetInput" value="75" min="0"
-                                    max="100">
+                                <input type="number" class="form-control" id="hygieneTargetInput" value="75" min="0" max="100">
                             </div>
 
                             <!-- Vaccine Parameters -->
@@ -877,8 +835,7 @@
 
                             <div class="mb-3">
                                 <label class="form-label">OCV Coverage Target (%)</label>
-                                <input type="number" class="form-control" id="ocvTargetInput" value="70" min="0"
-                                    max="100">
+                                <input type="number" class="form-control" id="ocvTargetInput" value="70" min="0" max="100">
                             </div>
 
                             <!-- Cost Parameters -->
@@ -889,8 +846,7 @@
                                 <label class="form-label">Water Supply (per capita)</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="waterCostInput" value="45" min="0"
-                                        step="5">
+                                    <input type="number" class="form-control" id="waterCostInput" value="45" min="0" step="5">
                                 </div>
                             </div>
 
@@ -898,8 +854,7 @@
                                 <label class="form-label">Sanitation (per capita)</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="sanitationCostInput" value="35"
-                                        min="0" step="5">
+                                    <input type="number" class="form-control" id="sanitationCostInput" value="35" min="0" step="5">
                                 </div>
                             </div>
 
@@ -907,8 +862,7 @@
                                 <label class="form-label">Hygiene Promotion (per capita)</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="hygieneCostInput" value="8" min="0"
-                                        step="1">
+                                    <input type="number" class="form-control" id="hygieneCostInput" value="8" min="0" step="1">
                                 </div>
                             </div>
 
@@ -916,18 +870,15 @@
                                 <label class="form-label">OCV Campaign Cost (per person)</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="ocvCostInput" value="3.50" min="0"
-                                        step="0.1">
+                                    <input type="number" class="form-control" id="ocvCostInput" value="3.50" min="0" step="0.1">
                                 </div>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Case Management Cost per Case <span
-                                        class="field-badge badge-calc">Calculated</span></label>
+                                <label class="form-label">Case Management Cost per Case <span class="field-badge badge-calc">Calculated</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="caseCostInput" value="150" min="0"
-                                        step="10">
+                                    <input type="number" class="form-control" id="caseCostInput" value="150" min="0" step="10">
                                 </div>
                                 <small class="text-muted" id="caseCostNote"></small>
                             </div>
@@ -935,8 +886,7 @@
                                 <label class="form-label">Other Program Costs (per capita)</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="otherCostInput" value="0" min="0"
-                                        step="1">
+                                    <input type="number" class="form-control" id="otherCostInput" value="0" min="0" step="1">
                                 </div>
                                 <small class="text-muted">E.g. training, community mobilization, monitoring</small>
                             </div>
@@ -945,41 +895,33 @@
                             <h6 class="mt-4 mb-3"><i class="fas fa-hospital"></i> Health Impact Parameters</h6>
 
                             <div class="mb-3">
-                                <label class="form-label">Base Annual Cholera Cases (per 1000) <span
-                                        class="field-badge badge-calc">Calculated</span></label>
-                                <input type="number" class="form-control" id="baseCaseRateInput" value="0.5" min="0"
-                                    step="0.1">
+                                <label class="form-label">Base Annual Cholera Cases (per 1000) <span class="field-badge badge-calc">Calculated</span></label>
+                                <input type="number" class="form-control" id="baseCaseRateInput" value="0.5" min="0" step="0.1">
                                 <small class="text-muted" id="baseCaseRateNote"></small>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Case Fatality Rate (%)</label>
-                                <input type="number" class="form-control" id="cfRateInput" value="1.0" min="0" max="10"
-                                    step="0.1">
+                                <input type="number" class="form-control" id="cfRateInput" value="1.0" min="0" max="10" step="0.1">
                             </div>
 
-                            <div class="mb-3"
-                                style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #0891b2;">
-                                <label class="form-label"><i class="fas fa-heart"></i> Mortality Valuation Method <span
-                                        class="field-badge badge-calc">Calculated</span></label>
+                            <div class="mb-3" style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #0891b2;">
+                                <label class="form-label"><i class="fas fa-heart"></i> Mortality Valuation Method <span class="field-badge badge-calc">Calculated</span></label>
                                 <div class="d-flex gap-2 mb-2">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="mortalityMethod"
-                                            id="methodHCA" value="hca">
+                                        <input class="form-check-input" type="radio" name="mortalityMethod" id="methodHCA" value="hca">
                                         <label class="form-check-label small fw-bold" for="methodHCA">HCA
                                             (Conservative)</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="mortalityMethod"
-                                            id="methodVSL" value="vsl" checked>
+                                        <input class="form-check-input" type="radio" name="mortalityMethod" id="methodVSL" value="vsl" checked="">
                                         <label class="form-check-label small fw-bold" for="methodVSL">VSL
                                             (Standard)</label>
                                     </div>
                                 </div>
                                 <div class="input-group mb-1">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="vslInput" value="27000" min="0"
-                                        step="1000">
+                                    <input type="number" class="form-control" id="vslInput" value="27000" min="0" step="1000">
                                 </div>
                                 <small class="text-muted d-block" id="vslNote">(use local estimate or leave
                                     default)</small>
@@ -1002,12 +944,10 @@
                             </div>
 
                             <div class="mb-4">
-                                <label class="form-label">Daily Wage Loss per Case (USD) <span
-                                        class="field-badge badge-calc">Calculated</span></label>
+                                <label class="form-label">Daily Wage Loss per Case (USD) <span class="field-badge badge-calc">Calculated</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="wageLossInput" value="5" min="0"
-                                        step="0.5">
+                                    <input type="number" class="form-control" id="wageLossInput" value="5" min="0" step="0.5">
                                 </div>
                                 <small class="text-muted" id="wageLossNote"></small>
                             </div>
@@ -1021,8 +961,7 @@
                                 <label class="form-label">Emergency WASH Response per Case</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="emergencyWashCostInput" value="20"
-                                        min="0" step="1">
+                                    <input type="number" class="form-control" id="emergencyWashCostInput" value="20" min="0" step="1">
                                 </div>
                             </div>
 
@@ -1030,8 +969,7 @@
                                 <label class="form-label">Emergency OCV Response per Case</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="emergencyOCVCostInput" value="15"
-                                        min="0" step="1">
+                                    <input type="number" class="form-control" id="emergencyOCVCostInput" value="15" min="0" step="1">
                                 </div>
                             </div>
 
@@ -1039,8 +977,7 @@
                                 <label class="form-label">Emergency Case Management per Case</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="emergencyCMCostInput" value="10"
-                                        min="0" step="1">
+                                    <input type="number" class="form-control" id="emergencyCMCostInput" value="10" min="0" step="1">
                                 </div>
                             </div>
 
@@ -1048,8 +985,7 @@
                                 <label class="form-label">Diarrhea Treatment Cost Avoided per Case</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="diarrhealTreatmentCostInput"
-                                        value="50" min="0" step="1">
+                                    <input type="number" class="form-control" id="diarrhealTreatmentCostInput" value="50" min="0" step="1">
                                 </div>
                             </div>
 
@@ -1057,8 +993,7 @@
                                 <label class="form-label">Funeral Costs Avoided per Death</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="funeralCostInput" value="100" min="0"
-                                        step="5">
+                                    <input type="number" class="form-control" id="funeralCostInput" value="100" min="0" step="5">
                                 </div>
                             </div>
 
@@ -1066,8 +1001,7 @@
                                 <label class="form-label">Tourism Benefit per Case Averted</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="tourismBenefitInput" value="2" min="0"
-                                        step="0.5">
+                                    <input type="number" class="form-control" id="tourismBenefitInput" value="2" min="0" step="0.5">
                                 </div>
                             </div>
 
@@ -1081,20 +1015,16 @@
                             </button>
 
                             <div class="btn-group w-100 mt-3" role="group">
-                                <button type="button" class="btn btn-sm btn-outline-info" id="exportCSVBtn"
-                                    title="Export raw variables to CSV">
+                                <button type="button" class="btn btn-sm btn-outline-info" id="exportCSVBtn" title="Export raw variables to CSV">
                                     <i class="fas fa-file-csv"></i> CSV Data
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-info" id="exportJSONBtn"
-                                    title="Export full data structure to JSON">
+                                <button type="button" class="btn btn-sm btn-outline-info" id="exportJSONBtn" title="Export full data structure to JSON">
                                     <i class="fas fa-code"></i> JSON Data
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-info" id="exportWordBtn"
-                                    title="Generate an Investment Case Document">
+                                <button type="button" class="btn btn-sm btn-outline-info" id="exportWordBtn" title="Generate an Investment Case Document">
                                     <i class="fas fa-file-word"></i> Word Report
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-info" id="printBtn"
-                                    title="Print the Investment Case Summary">
+                                <button type="button" class="btn btn-sm btn-outline-info" id="printBtn" title="Print the Investment Case Summary">
                                     <i class="fas fa-print"></i> Print Report
                                 </button>
                             </div>
@@ -1146,8 +1076,7 @@
                                 <a class="nav-link" id="benefits-tab" data-bs-toggle="tab" href="#benefits">Benefits</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" id="comparison-tab" data-bs-toggle="tab"
-                                    href="#comparison">Comparison</a>
+                                <a class="nav-link" id="comparison-tab" data-bs-toggle="tab" href="#comparison">Comparison</a>
                             </li>
                         </ul>
 
@@ -1198,12 +1127,8 @@
                                     <thead>
                                         <tr>
                                             <th>Benefit Category</th>
-                                            <th class="text-end" style="cursor:pointer;" id="sortByValue"
-                                                title="Click to sort by value">Total Benefit (USD) <i
-                                                    class="fas fa-sort"></i></th>
-                                            <th class="text-end" style="cursor:pointer;" id="sortByPercent"
-                                                title="Click to sort by percentage">% of Total <i
-                                                    class="fas fa-sort"></i></th>
+                                            <th class="text-end" style="cursor:pointer;" id="sortByValue" title="Click to sort by value">Total Benefit (USD) <i class="fas fa-sort"></i></th>
+                                            <th class="text-end" style="cursor:pointer;" id="sortByPercent" title="Click to sort by percentage">% of Total <i class="fas fa-sort"></i></th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -1211,7 +1136,7 @@
                                 <div class="summary-section">
                                     <h6 class="mb-3">Cost-Benefit Summary</h6>
                                     <table class="comparison-table">
-                                        <tr>
+                                        <tbody><tr>
                                             <th>Metric</th>
                                             <th>Value</th>
                                         </tr>
@@ -1235,7 +1160,7 @@
                                             <td>Cost per DALY Averted</td>
                                             <td id="summaryDALY">-</td>
                                         </tr>
-                                    </table>
+                                    </tbody></table>
                                 </div>
                             </div>
 
@@ -1282,30 +1207,14 @@
                 <hr>
                 <p class="mb-2"><i class="fas fa-database"></i> <strong>World Bank Data Sources</strong></p>
                 <div class="d-flex flex-wrap justify-content-center gap-3">
-                    <a href="https://data.worldbank.org/indicator/SP.POP.TOTL" target="_blank"
-                        class="text-muted text-decoration-none hover-dark"><i
-                            class="fas fa-external-link-alt fa-sm"></i> Population (SP.POP.TOTL)</a>
-                    <a href="https://data.worldbank.org/indicator/SP.POP.GROW" target="_blank"
-                        class="text-muted text-decoration-none hover-dark"><i
-                            class="fas fa-external-link-alt fa-sm"></i> Pop. Growth (SP.POP.GROW)</a>
-                    <a href="https://data.worldbank.org/indicator/NY.GDP.PCAP.CD" target="_blank"
-                        class="text-muted text-decoration-none hover-dark"><i
-                            class="fas fa-external-link-alt fa-sm"></i> GDP per capita (NY.GDP.PCAP.CD)</a>
-                    <a href="https://data.worldbank.org/indicator/SH.STA.SMSS.ZS" target="_blank"
-                        class="text-muted text-decoration-none hover-dark"><i
-                            class="fas fa-external-link-alt fa-sm"></i> Safe Sanitation (SH.STA.SMSS.ZS)</a>
-                    <a href="https://data.worldbank.org/indicator/SH.STA.ODFC.ZS" target="_blank"
-                        class="text-muted text-decoration-none hover-dark"><i
-                            class="fas fa-external-link-alt fa-sm"></i> Open Defecation (SH.STA.ODFC.ZS)</a>
-                    <a href="https://data.worldbank.org/indicator/SH.XPD.CHEX.GD.ZS" target="_blank"
-                        class="text-muted text-decoration-none hover-dark"><i
-                            class="fas fa-external-link-alt fa-sm"></i> Health Spend (SH.XPD.CHEX.GD.ZS)</a>
-                    <a href="https://data.worldbank.org/indicator/SH.STA.STNT.ZS" target="_blank"
-                        class="text-muted text-decoration-none hover-dark"><i
-                            class="fas fa-external-link-alt fa-sm"></i> Child Stunting (SH.STA.STNT.ZS)</a>
-                    <a href="https://data.worldbank.org/indicator/SP.DYN.IMRT.IN" target="_blank"
-                        class="text-muted text-decoration-none hover-dark"><i
-                            class="fas fa-external-link-alt fa-sm"></i> Infant Mortality (SP.DYN.IMRT.IN)</a>
+                    <a href="https://data.worldbank.org/indicator/SP.POP.TOTL" target="_blank" class="text-muted text-decoration-none hover-dark"><i class="fas fa-external-link-alt fa-sm"></i> Population (SP.POP.TOTL)</a>
+                    <a href="https://data.worldbank.org/indicator/SP.POP.GROW" target="_blank" class="text-muted text-decoration-none hover-dark"><i class="fas fa-external-link-alt fa-sm"></i> Pop. Growth (SP.POP.GROW)</a>
+                    <a href="https://data.worldbank.org/indicator/NY.GDP.PCAP.CD" target="_blank" class="text-muted text-decoration-none hover-dark"><i class="fas fa-external-link-alt fa-sm"></i> GDP per capita (NY.GDP.PCAP.CD)</a>
+                    <a href="https://data.worldbank.org/indicator/SH.STA.SMSS.ZS" target="_blank" class="text-muted text-decoration-none hover-dark"><i class="fas fa-external-link-alt fa-sm"></i> Safe Sanitation (SH.STA.SMSS.ZS)</a>
+                    <a href="https://data.worldbank.org/indicator/SH.STA.ODFC.ZS" target="_blank" class="text-muted text-decoration-none hover-dark"><i class="fas fa-external-link-alt fa-sm"></i> Open Defecation (SH.STA.ODFC.ZS)</a>
+                    <a href="https://data.worldbank.org/indicator/SH.XPD.CHEX.GD.ZS" target="_blank" class="text-muted text-decoration-none hover-dark"><i class="fas fa-external-link-alt fa-sm"></i> Health Spend (SH.XPD.CHEX.GD.ZS)</a>
+                    <a href="https://data.worldbank.org/indicator/SH.STA.STNT.ZS" target="_blank" class="text-muted text-decoration-none hover-dark"><i class="fas fa-external-link-alt fa-sm"></i> Child Stunting (SH.STA.STNT.ZS)</a>
+                    <a href="https://data.worldbank.org/indicator/SP.DYN.IMRT.IN" target="_blank" class="text-muted text-decoration-none hover-dark"><i class="fas fa-external-link-alt fa-sm"></i> Infant Mortality (SP.DYN.IMRT.IN)</a>
                 </div>
                 <style>
                     .hover-dark:hover {
@@ -1323,6 +1232,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="calculator.js"></script>
     <script src="export-functions.js"></script>
-</body>
 
-</html>
+
+</body></html>
